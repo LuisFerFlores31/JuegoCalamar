@@ -1,0 +1,24 @@
+# Blender 4.5.3 LTS MTL File: 'None'
+# www.blender.org
+
+newmtl M_Body
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 1
+map_Kd m_body_alb.png
+map_Ns M_Body_Rgh.png
+map_d M_Body_Alb.png
+map_Bump -bm 0.300000 M_Body_Nrm.png
+
+newmtl M_Eye
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 1
+map_Kd M_Eye_Alb.0.png
+map_Ns M_Eye_Rgh.0.png
+map_d M_Eye_Alb.0.png
+map_Bump -bm 0.300000 M_Eye_Nrm.0.png

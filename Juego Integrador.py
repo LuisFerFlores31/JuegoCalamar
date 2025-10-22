@@ -105,7 +105,13 @@ def Init():
     glEnable(GL_COLOR_MATERIAL)
     glShadeModel(GL_SMOOTH)           # most obj files expect to be smooth-shaded    
     #objetos.append(OBJ("Ejemplo11_objetos/Tank.obj", swapyz=True))    
-    objetos.append(OBJ("Player_Squid/Squid.obj" , swapyz=True))
+    #objetos.append(OBJ("Player_Squid/Squid.obj" , swapyz=True))
+    objetos.append(OBJ("Player_Squid/faceSquid.obj" , swapyz=True))
+    objetos.append(OBJ("Player_Squid/DerSquid.obj" , swapyz=True))
+    objetos.append(OBJ("Player_Squid/IzqSquid.obj" , swapyz=True))
+    #objetos.append(OBJ("Maquina/uploads_files_6182674_01.obj" , swapyz=True))
+
+    
     
 
     for i in range(len(objetos)): 
@@ -125,10 +131,36 @@ def displayobj():
     glPushMatrix()  
     #correcciones para dibujar el objeto en plano XZ
     #esto depende de cada objeto
-    glRotatef(-90.0, 1.0, 0.0, 0.0)
-    glTranslatef(0.0, 0.0, 15.0)
+    #glRotatef(-90.0, 1.0, 0.0, 0.0)
+    #glTranslatef(0.0, 15.0, 0.0)
     glScale(100.0,100.0,100.0)
     objetos[0].render()  
+    glPopMatrix()
+    
+
+
+def displayDer():
+    glPushMatrix()  
+    # Correcciones para dibujar el objeto en plano XZ
+    #glRotatef(-90.0, 1.0, 0.0, 0.0)
+    #glTranslatef(0.0, 0.0, 15.0)
+    # Agrega rotación en el eje Z simulando movimiento tentacular lateral
+    glRotatef(-35, 0.0, 0.0, 1.0)
+    glScale(100.0,100.0,100.0)
+    objetos[1].render()  
+    glPopMatrix()
+    
+def displayIzq():
+    glPushMatrix()  
+    # Correcciones para dibujar el objeto en plano XZ
+    #glRotatef(-90.0, 1.0, 0.0, 0.0)
+    # rotación inicial extra si es necesaria
+    glRotatef(1.0, 45.0, 0.0, 0.0)
+    glTranslatef(0.0, 0.0, 15.0)
+    # Agrega rotación en el eje Z simulando movimiento tentacular lateral (contrario)
+    glRotatef(-325, 0.0, 0.0, 1.0)
+    glScale(100.0,100.0,100.0)
+    objetos[2].render()  
     glPopMatrix()
     
 def display():
@@ -144,6 +176,8 @@ def display():
     glEnd()
 
     displayobj()
+    displayDer()
+    displayIzq()
     
 done = False
 Init()

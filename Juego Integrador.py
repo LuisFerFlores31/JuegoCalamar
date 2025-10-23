@@ -43,8 +43,14 @@ Z_MAX=500
 #Dimension del plano
 DimBoard = 200
 
-#Variables asociados a los objetos de la clase Cubo
-#cubo = Cubo(DimBoard, 1.0)
+#Variables del calamar
+Player_X = 0.0
+Player_Y = 0.0
+Player_Z = 0.0
+Player_Rotation = 0.0  # Rotación del calamar en grados
+SquidT = 0.0
+SquidSw = 0
+SquidSwBack = 0
 
 objetos = []
 
@@ -127,40 +133,36 @@ def lookat():
     glLoadIdentity()
     gluLookAt(EYE_X,EYE_Y,EYE_Z,CENTER_X,CENTER_Y,CENTER_Z,UP_X,UP_Y,UP_Z)
     
-def displayobj():
+def SquidFace():
     glPushMatrix()  
+    glTranslatef(Player_X, Player_Y , Player_Z)
+    glRotatef(Player_Rotation, 0, 1, 0)  # Rotar el calamar según su orientación
     #correcciones para dibujar el objeto en plano XZ
     #esto depende de cada objeto
     #glRotatef(-90.0, 1.0, 0.0, 0.0)
     #glTranslatef(0.0, 15.0, 0.0)
-    glScale(100.0,100.0,100.0)
+    glScale(50.0,50.0,50.0)
     objetos[0].render()  
     glPopMatrix()
     
 
 
-def displayDer():
-    glPushMatrix()  
-    # Correcciones para dibujar el objeto en plano XZ
-    #glRotatef(-90.0, 1.0, 0.0, 0.0)
-    #glTranslatef(0.0, 0.0, 15.0)
-    # Agrega rotación en el eje Z simulando movimiento tentacular lateral
-    glRotatef(-35, 0.0, 0.0, 1.0)
-    glScale(100.0,100.0,100.0)
-    objetos[1].render()  
+def SquidDer():
+    glPushMatrix()
+    glTranslatef(Player_X, Player_Y , Player_Z)
+    glRotatef(Player_Rotation, 0, 1, 0)  # Rotar el calamar según su orientación
+    glRotatef(-SquidT, 0, 1, 0)    # Rota en Y para simular el movimiento de nado de lado a lado
+    glScale(50.0,50.0,50.0)
+    objetos[1].render()
     glPopMatrix()
-    
-def displayIzq():
-    glPushMatrix()  
-    # Correcciones para dibujar el objeto en plano XZ
-    #glRotatef(-90.0, 1.0, 0.0, 0.0)
-    # rotación inicial extra si es necesaria
-    glRotatef(1.0, 45.0, 0.0, 0.0)
-    glTranslatef(0.0, 0.0, 15.0)
-    # Agrega rotación en el eje Z simulando movimiento tentacular lateral (contrario)
-    glRotatef(-325, 0.0, 0.0, 1.0)
-    glScale(100.0,100.0,100.0)
-    objetos[2].render()  
+
+def SquidIzq():
+    glPushMatrix()
+    glTranslatef(Player_X, Player_Y , Player_Z)
+    glRotatef(Player_Rotation, 0, 1, 0)  # Rotar el calamar según su orientación
+    glRotatef(SquidT, 0, 1, 0)   # Rota en Y en el sentido contrario para simular el movimiento de nado
+    glScale(50.0,50.0,50.0)
+    objetos[2].render()
     glPopMatrix()
     
 def display():
@@ -175,9 +177,9 @@ def display():
     glVertex3d(DimBoard, 0, -DimBoard)
     glEnd()
 
-    displayobj()
-    displayDer()
-    displayIzq()
+    SquidFace()
+    SquidDer()
+    SquidIzq()
     
 done = False
 Init()
@@ -205,7 +207,57 @@ while not done:
     if keys[pygame.K_DOWN]:
         if radius < 900.0:
             radius += 1.0
-        lookat() 
+        lookat()
+
+    #Controles para prueba de calamar
+    # Calcular dirección de movimiento basada en la rotación del calamar
+    dir_x = math.sin(math.radians(Player_Rotation))
+    dir_z = math.cos(math.radians(Player_Rotation))
+    
+    if keys[pygame.K_w]:
+        SquidSwBack = 0  #Reset animacion S
+        if SquidSw == 0:  #Adelante
+            SquidT += 1.5
+            if SquidT >= 45:
+                SquidSw = 1  #Atras
+        else:
+            SquidT -= 2.5
+            # Movimiento hacia adelante
+            Player_X -= dir_x * 0.5
+            Player_Z -= dir_z * 0.5
+            
+            if SquidT <= -10:
+                SquidSw = 0  #reset adelante
+
+    if keys[pygame.K_s]:
+        SquidSw = 0  #Reset animacion W 
+        if SquidSwBack == 0:  #Atras
+            SquidT -= 2.5
+            if SquidT <= -10:
+                SquidSwBack = 1 #adelante
+        else:
+            SquidT += 1.5
+            # Movimiento hacia atrás
+            Player_X += dir_x * 0.3
+            Player_Z += dir_z * 0.3
+            
+            if SquidT >= 45:
+                SquidSwBack = 0 #reset atras
+
+    if keys[pygame.K_a]:
+        # Rotar el calamar a la izquierda
+        Player_Rotation -= 2.0
+        if Player_Rotation < 0:
+            Player_Rotation += 360
+
+    if keys[pygame.K_d]:
+        # Rotar el calamar a la derecha
+        Player_Rotation += 2.0
+        if Player_Rotation >= 360:
+            Player_Rotation -= 360
+
+            
+   
     
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:

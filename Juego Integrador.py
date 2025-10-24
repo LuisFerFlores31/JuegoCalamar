@@ -59,6 +59,8 @@ Maquina_Z = 0.0
 car_angle = 0.0
 wheel_angle = 0.0
 wheel_rotate = 0.0
+arm_angle = -15.0  # Ángulo inicial del brazo
+
 
 objetos = []
 
@@ -355,10 +357,18 @@ while not done:
         wheel_rotate = 0.0  # Vuelve las ruedas delanteras a la posición recta si no se gira
    
    #Control del brazo de la maquina (P)
+   # if keys[pygame.K_p]:
+   #     arm_angle = 45.0  #valor para el ángulo de elevación del brazo
+   # if not keys[pygame.K_p]:
+   #     arm_angle = -15.0  #Vuelve el brazo a la posición baja si no se presiona P
+        
+        
     if keys[pygame.K_p]:
-        arm_angle = 45.0  #valor para el ángulo de elevación del brazo
-    if not keys[pygame.K_p]:
-        arm_angle = -15.0  #Vuelve el brazo a la posición baja si no se presiona P
+        if arm_angle < 45.0:  # Maximum angle limit
+            arm_angle += 1.0  # Gradually increase
+    else:  # When P is not pressed
+        if arm_angle > -15.0:  # Minimum angle limit
+            arm_angle -= 1.0  # Gradually decrease
     
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:

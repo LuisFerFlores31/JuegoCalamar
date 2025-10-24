@@ -127,8 +127,8 @@ def Init():
     objetos.append(OBJ("WheelLoader/BaseMaquina.obj" , swapyz=True))
     objetos.append(OBJ("WheelLoader/ArmMaquina.obj" , swapyz=True))
     objetos.append(OBJ("WheelLoader/FWMaquina.obj" , swapyz=True))
-    objetos.append(OBJ("WheelLoader/BWMaquina.obj" , swapyz=True))
-
+    #objetos.append(OBJ("WheelLoader/BWMaquina.obj" , swapyz=True))
+    objetos.append(OBJ("WheelLoader/GWMaquina.obj" , swapyz=True))
     #objetos.append(OBJ("Excavator/Excavator.obj" , swapyz=True))
     
 
@@ -184,6 +184,7 @@ def Maquina():
     glPushMatrix()
     glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
     glRotatef(car_angle, 0.0, 1.0, 0.0)
+    
     #glTranslatef(100.0, 0.0 , 100.0)
     #glRotatef(0.0, 0, 1, 0)  
     glScale(10.0,10.0,10.0)
@@ -205,11 +206,11 @@ def MaquinaFW():
     glPushMatrix()
     glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
     glRotatef(car_angle, 0.0, 1.0, 0.0)
-
-    #glTranslatef(100.0, 0.0 , 100.0)
-    #glRotatef(0.0, 0, 1, 0)  
+    glTranslatef(0.0, 10.0 , -19.0) #ajuste de offset
+    glRotatef(wheel_rotate, 0.0, 1.0, 0.0)  #Vuelta de las ruedas delanteras
+    glRotatef(wheel_angle, 1.0, 0.0, 0.0) #giro de las ruedas
     glScale(10.0,10.0,10.0)
-    objetos[5].render()
+    objetos[6].render()
     glPopMatrix()
     
 def MaquinaBW():
@@ -217,10 +218,9 @@ def MaquinaBW():
     #Mover y rotar el carrito
     glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
     glRotatef(car_angle, 0.0, 1.0, 0.0)
+    glTranslatef(0.0, 10.0 , 21.0) #ajuste de offset
     #glRotatef(wheel_rotate, 0.0, 1.0, 0.0)
-#   #Ajuste para rotar las llantas traseras sobre su eje
-#   glTranslatef(0.0, -0.66, 2.56) #Ajusta al nuevo punto de referencia
-    glRotatef(wheel_angle, 1.0, 0.0, 0.0)
+    glRotatef(wheel_angle, 1.0, 0.0, 0.0) #giro de las ruedas
     glScale(10.0,10.0,10.0)
     objetos[6].render()
     glPopMatrix()
@@ -345,10 +345,10 @@ while not done:
             wheel_angle -= 360.0
     if keys[pygame.K_j]:
         car_angle += turn_speed
-        wheel_rotate = 5.0  # Ajusta este valor para el ángulo de giro de las ruedas delanteras
+        wheel_rotate = 12.0  #valor para el ángulo de giro de las ruedas delanteras
     if keys[pygame.K_l]:
         car_angle -= turn_speed
-        wheel_rotate = -5.0  # Ajusta este valor para el ángulo de giro de las ruedas delanteras
+        wheel_rotate = -12.0  # valor para el ángulo de giro de las ruedas delanteras
     if not (keys[pygame.K_j] or keys[pygame.K_l]):
         wheel_rotate = 0.0  # Vuelve las ruedas delanteras a la posición recta si no se gira
    

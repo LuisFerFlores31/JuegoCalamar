@@ -52,6 +52,14 @@ SquidT = 0.0
 SquidSw = 0
 SquidSwBack = 0
 
+#variables de la maquina Wheel Loader
+Maquina_X = 0.0
+Maquina_Y = 0.0
+Maquina_Z = 0.0
+car_angle = 0.0
+wheel_angle = 0.0
+wheel_rotate = 0.0
+
 objetos = []
 
 #Variables para el control del observador
@@ -109,13 +117,20 @@ def Init():
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
     glEnable(GL_COLOR_MATERIAL)
-    glShadeModel(GL_SMOOTH)           # most obj files expect to be smooth-shaded    
-    #objetos.append(OBJ("Ejemplo11_objetos/Tank.obj", swapyz=True))    
+    glShadeModel(GL_SMOOTH)           
+    
     #objetos.append(OBJ("Player_Squid/Squid.obj" , swapyz=True))
     objetos.append(OBJ("Player_Squid/faceSquid.obj" , swapyz=True))
     objetos.append(OBJ("Player_Squid/DerSquid.obj" , swapyz=True))
     objetos.append(OBJ("Player_Squid/IzqSquid.obj" , swapyz=True))
-    #objetos.append(OBJ("Maquina/uploads_files_6182674_01.obj" , swapyz=True))
+    
+    objetos.append(OBJ("WheelLoader/BaseMaquina.obj" , swapyz=True))
+    objetos.append(OBJ("WheelLoader/ArmMaquina.obj" , swapyz=True))
+    objetos.append(OBJ("WheelLoader/FWMaquina.obj" , swapyz=True))
+    objetos.append(OBJ("WheelLoader/BWMaquina.obj" , swapyz=True))
+
+    #objetos.append(OBJ("Excavator/Excavator.obj" , swapyz=True))
+    
 
     
     
@@ -141,18 +156,16 @@ def SquidFace():
     #esto depende de cada objeto
     #glRotatef(-90.0, 1.0, 0.0, 0.0)
     #glTranslatef(0.0, 15.0, 0.0)
-    glScale(50.0,50.0,50.0)
+    glScale(20.0,20.0,20.0)
     objetos[0].render()  
     glPopMatrix()
     
-
-
 def SquidDer():
     glPushMatrix()
     glTranslatef(Player_X, Player_Y , Player_Z)
     glRotatef(Player_Rotation, 0, 1, 0)  # Rotar el calamar según su orientación
     glRotatef(-SquidT, 0, 1, 0)    # Rota en Y para simular el movimiento de nado de lado a lado
-    glScale(50.0,50.0,50.0)
+    glScale(20.0,20.0,20.0)
     objetos[1].render()
     glPopMatrix()
 
@@ -161,8 +174,55 @@ def SquidIzq():
     glTranslatef(Player_X, Player_Y , Player_Z)
     glRotatef(Player_Rotation, 0, 1, 0)  # Rotar el calamar según su orientación
     glRotatef(SquidT, 0, 1, 0)   # Rota en Y en el sentido contrario para simular el movimiento de nado
-    glScale(50.0,50.0,50.0)
+    glScale(20.0,20.0,20.0)
     objetos[2].render()
+    glPopMatrix()
+        
+        
+# Dibuja la maquina Wheel Loader
+def Maquina():
+    glPushMatrix()
+    glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
+    glRotatef(car_angle, 0.0, 1.0, 0.0)
+    #glTranslatef(100.0, 0.0 , 100.0)
+    #glRotatef(0.0, 0, 1, 0)  
+    glScale(10.0,10.0,10.0)
+    objetos[3].render()
+    glPopMatrix()
+    
+def MaquinaArm():
+    glPushMatrix()
+    glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
+    glRotatef(car_angle, 0.0, 1.0, 0.0)
+
+    #glTranslatef(100.0, 0.0 , 100.0)
+    #glRotatef(0.0, 0, 1, 0)  
+    glScale(10.0,10.0,10.0)
+    objetos[4].render()
+    glPopMatrix()
+    
+def MaquinaFW():
+    glPushMatrix()
+    glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
+    glRotatef(car_angle, 0.0, 1.0, 0.0)
+
+    #glTranslatef(100.0, 0.0 , 100.0)
+    #glRotatef(0.0, 0, 1, 0)  
+    glScale(10.0,10.0,10.0)
+    objetos[5].render()
+    glPopMatrix()
+    
+def MaquinaBW():
+    glPushMatrix()
+    #Mover y rotar el carrito
+    glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
+    glRotatef(car_angle, 0.0, 1.0, 0.0)
+    #glRotatef(wheel_rotate, 0.0, 1.0, 0.0)
+#   #Ajuste para rotar las llantas traseras sobre su eje
+#   glTranslatef(0.0, -0.66, 2.56) #Ajusta al nuevo punto de referencia
+    glRotatef(wheel_angle, 1.0, 0.0, 0.0)
+    glScale(10.0,10.0,10.0)
+    objetos[6].render()
     glPopMatrix()
     
 def display():
@@ -177,12 +237,21 @@ def display():
     glVertex3d(DimBoard, 0, -DimBoard)
     glEnd()
 
+    #Calamar
     SquidFace()
     SquidDer()
     SquidIzq()
+    #Maquina
+    Maquina()
+    MaquinaArm()
+    MaquinaFW()
+    MaquinaBW()
+    
     
 done = False
 Init()
+move_speed = 1.0
+turn_speed = 1.0
 while not done:
     keys = pygame.key.get_pressed()
     # Controles observador (flechas)
@@ -243,20 +312,45 @@ while not done:
             
             if SquidT >= 45:
                 SquidSwBack = 0 #reset atras
-
-    if keys[pygame.K_a]:
+                
+    if keys[pygame.K_d]:
         # Rotar el calamar a la izquierda
         Player_Rotation -= 2.0
         if Player_Rotation < 0:
             Player_Rotation += 360
 
-    if keys[pygame.K_d]:
+    if keys[pygame.K_a]:
         # Rotar el calamar a la derecha
         Player_Rotation += 2.0
         if Player_Rotation >= 360:
-            Player_Rotation -= 360
-
+            Player_Rotation -= 360   
             
+             
+#Maquina
+    # Controles Carro (IJKL)
+    rad = math.radians(car_angle)
+    dir_x = math.sin(rad)
+    dir_z = math.cos(rad)
+    if keys[pygame.K_k]:
+        Maquina_X += dir_x * move_speed
+        Maquina_Z += dir_z * move_speed
+        wheel_angle += 10.0  # Incrementa el ángulo de las ruedas al retroceder
+        if wheel_angle <= -360.0:
+            wheel_angle += 360.0
+    if keys[pygame.K_i]:
+        Maquina_X -= dir_x * move_speed
+        Maquina_Z -= dir_z * move_speed
+        wheel_angle -= 10.0  # Incrementa el ángulo de las ruedas al avanzar
+        if wheel_angle >= 360.0:
+            wheel_angle -= 360.0
+    if keys[pygame.K_j]:
+        car_angle += turn_speed
+        wheel_rotate = 5.0  # Ajusta este valor para el ángulo de giro de las ruedas delanteras
+    if keys[pygame.K_l]:
+        car_angle -= turn_speed
+        wheel_rotate = -5.0  # Ajusta este valor para el ángulo de giro de las ruedas delanteras
+    if not (keys[pygame.K_j] or keys[pygame.K_l]):
+        wheel_rotate = 0.0  # Vuelve las ruedas delanteras a la posición recta si no se gira
    
     
     for event in pygame.event.get():

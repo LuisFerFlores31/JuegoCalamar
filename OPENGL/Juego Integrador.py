@@ -348,27 +348,27 @@ while not done:
         if wheel_angle >= 360.0:
             wheel_angle -= 360.0
     if keys[pygame.K_j]:
-        car_angle += turn_speed
-        wheel_rotate = 12.0  #valor para el ángulo de giro de las ruedas delanteras
+        #car_angle += turn_speed
+        if wheel_rotate < 15.0:  # Limita el ángulo de giro máximo
+            wheel_rotate += turn_speed  #valor para el ángulo de giro de las ruedas delanteras
     if keys[pygame.K_l]:
-        car_angle -= turn_speed
-        wheel_rotate = -12.0  # valor para el ángulo de giro de las ruedas delanteras
-    if not (keys[pygame.K_j] or keys[pygame.K_l]):
-        wheel_rotate = 0.0  # Vuelve las ruedas delanteras a la posición recta si no se gira
+        #car_angle -= turn_speed
+        if wheel_rotate > -15.0:  # Limita el ángulo de giro máximo
+            wheel_rotate -= turn_speed  #valor para el ángulo de giro de las ruedas delanteras  
+           
+                
+    if keys[pygame.K_p]:
+        if arm_angle < 45.0:  # Maximum angle limit
+            arm_angle += 2.0  # Gradually increase
+    else:  # When P is not pressed
+        if arm_angle > -15.0:  # Minimum angle limit
+            arm_angle -= 2.0  # Gradually decrease
    
    #Control del brazo de la maquina (P)
    # if keys[pygame.K_p]:
    #     arm_angle = 45.0  #valor para el ángulo de elevación del brazo
    # if not keys[pygame.K_p]:
    #     arm_angle = -15.0  #Vuelve el brazo a la posición baja si no se presiona P
-        
-        
-    if keys[pygame.K_p]:
-        if arm_angle < 45.0:  # Maximum angle limit
-            arm_angle += 1.0  # Gradually increase
-    else:  # When P is not pressed
-        if arm_angle > -15.0:  # Minimum angle limit
-            arm_angle -= 1.0  # Gradually decrease
     
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:

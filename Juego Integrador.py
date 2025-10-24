@@ -120,15 +120,18 @@ def Init():
     glShadeModel(GL_SMOOTH)           
     
     #objetos.append(OBJ("Player_Squid/Squid.obj" , swapyz=True))
-    objetos.append(OBJ("Player_Squid/faceSquid.obj" , swapyz=True))
-    objetos.append(OBJ("Player_Squid/DerSquid.obj" , swapyz=True))
-    objetos.append(OBJ("Player_Squid/IzqSquid.obj" , swapyz=True))
+    objetos.append(OBJ("Player_Squid/faceSquid.obj" , swapyz=True)) #0
+    objetos.append(OBJ("Player_Squid/DerSquid.obj" , swapyz=True)) #1
+    objetos.append(OBJ("Player_Squid/IzqSquid.obj" , swapyz=True)) #2
     
-    objetos.append(OBJ("WheelLoader/BaseMaquina.obj" , swapyz=True))
-    objetos.append(OBJ("WheelLoader/ArmMaquina.obj" , swapyz=True))
-    objetos.append(OBJ("WheelLoader/FWMaquina.obj" , swapyz=True))
+    objetos.append(OBJ("WheelLoader/BaseMaquina.obj" , swapyz=True)) #3
+    #objetos.append(OBJ("WheelLoader/ArmMaquina.obj" , swapyz=True)) #4
+    objetos.append(OBJ("WheelLoader/GArmMaquina.obj" , swapyz=True)) #4
+
+    
+    #objetos.append(OBJ("WheelLoader/FWMaquina.obj" , swapyz=True))
     #objetos.append(OBJ("WheelLoader/BWMaquina.obj" , swapyz=True))
-    objetos.append(OBJ("WheelLoader/GWMaquina.obj" , swapyz=True))
+    objetos.append(OBJ("WheelLoader/GWMaquina.obj" , swapyz=True)) #5
     #objetos.append(OBJ("Excavator/Excavator.obj" , swapyz=True))
     
 
@@ -195,9 +198,8 @@ def MaquinaArm():
     glPushMatrix()
     glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
     glRotatef(car_angle, 0.0, 1.0, 0.0)
-
-    #glTranslatef(100.0, 0.0 , 100.0)
-    #glRotatef(0.0, 0, 1, 0)  
+    glTranslatef(0.0, 20.0 , -10.0) #ajuste de offset
+    glRotatef(arm_angle, 1.0, 0.0, 0.0)  #Elevacion del brazo
     glScale(10.0,10.0,10.0)
     objetos[4].render()
     glPopMatrix()
@@ -210,7 +212,7 @@ def MaquinaFW():
     glRotatef(wheel_rotate, 0.0, 1.0, 0.0)  #Vuelta de las ruedas delanteras
     glRotatef(wheel_angle, 1.0, 0.0, 0.0) #giro de las ruedas
     glScale(10.0,10.0,10.0)
-    objetos[6].render()
+    objetos[5].render()
     glPopMatrix()
     
 def MaquinaBW():
@@ -222,7 +224,7 @@ def MaquinaBW():
     #glRotatef(wheel_rotate, 0.0, 1.0, 0.0)
     glRotatef(wheel_angle, 1.0, 0.0, 0.0) #giro de las ruedas
     glScale(10.0,10.0,10.0)
-    objetos[6].render()
+    objetos[5].render()
     glPopMatrix()
     
 def display():
@@ -352,6 +354,11 @@ while not done:
     if not (keys[pygame.K_j] or keys[pygame.K_l]):
         wheel_rotate = 0.0  # Vuelve las ruedas delanteras a la posición recta si no se gira
    
+   #Control del brazo de la maquina (P)
+    if keys[pygame.K_p]:
+        arm_angle = 45.0  #valor para el ángulo de elevación del brazo
+    if not keys[pygame.K_p]:
+        arm_angle = -15.0  #Vuelve el brazo a la posición baja si no se presiona P
     
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:

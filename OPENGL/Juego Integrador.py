@@ -344,22 +344,33 @@ while not done:
             Player_Rotation -= 360   
             
              
-#Maquina
+    #Maquina
     # Controles Carro (IJKL)
-    rad = math.radians(car_angle)
-    dir_x = math.sin(rad)
-    dir_z = math.cos(rad)
-    wheel_dir_x = math.sin(math.radians(car_angle + wheel_rotate))
+    # Ahora el vector de movimiento se calcula usando el ángulo hacia el que apuntan
+    # las ruedas delanteras: (car_angle + wheel_rotate). Además la orientación
+    # del carro (car_angle) se ajusta ligeramente mientras se mueve para simular
+    # giro basado en la dirección de las ruedas.
+    heading = car_angle + wheel_rotate
+    rad_h = math.radians(heading)
+    dir_x = math.sin(rad_h)
+    dir_z = math.cos(rad_h)
+
     if keys[pygame.K_k]:
         Maquina_X += dir_x * move_speed
         Maquina_Z += dir_z * move_speed
-        wheel_angle += 10.0  # Incrementa el ángulo de las ruedas al retroceder
+        # Girar lentamente el cuerpo del carro hacia la dirección de las ruedas
+        car_angle -= (wheel_rotate) * 0.02
+        # Rotación de las ruedas (visual)
+        wheel_angle += 10.0
         if wheel_angle <= -360.0:
             wheel_angle += 360.0
+
     if keys[pygame.K_i]:
         Maquina_X -= dir_x * move_speed
         Maquina_Z -= dir_z * move_speed
-        wheel_angle -= 10.0  # Incrementa el ángulo de las ruedas al avanzar
+        # Al ir en reversa, el carro gira en sentido contrario respecto al giro de las ruedas
+        car_angle += (wheel_rotate) * 0.02
+        wheel_angle -= 10.0
         if wheel_angle >= 360.0:
             wheel_angle -= 360.0
     if keys[pygame.K_j]:
@@ -391,7 +402,6 @@ while not done:
                 done = True
 
     display()
-
     pygame.display.flip()
     pygame.time.wait(10)
 

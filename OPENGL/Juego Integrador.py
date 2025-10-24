@@ -51,6 +51,7 @@ Player_Rotation = 0.0  # Rotación del calamar en grados
 SquidT = 0.0
 SquidSw = 0
 SquidSwBack = 0
+Squid_R = 0.0
 
 #variables de la maquina Wheel Loader
 Maquina_X = 0.0
@@ -156,7 +157,9 @@ def lookat():
 def SquidFace():
     glPushMatrix()  
     glTranslatef(Player_X, Player_Y , Player_Z)
-    glRotatef(Player_Rotation, 0, 1, 0)  # Rotar el calamar según su orientación
+    glRotatef(Player_Rotation + Squid_R, 0, 1, 0)  # Rotar el calamar según su orientación
+    #glRotatef(Squid_R, 0, 1, 0)  # Rotar el calamar según su orientación
+
     #correcciones para dibujar el objeto en plano XZ
     #esto depende de cada objeto
     #glRotatef(-90.0, 1.0, 0.0, 0.0)
@@ -289,6 +292,10 @@ while not done:
     
     if keys[pygame.K_w]:
         SquidSwBack = 0  #Reset animacion S
+        if Squid_R > 0:
+            Squid_R -= 0.5
+        if Squid_R < 0:
+            Squid_R += 0.5
         if SquidSw == 0:  #Adelante
             SquidT += 1.5
             if SquidT >= 45:
@@ -304,6 +311,8 @@ while not done:
 
     if keys[pygame.K_s]:
         SquidSw = 0  #Reset animacion W 
+        if Squid_R < 0:
+            Squid_R += 2.0
         if SquidSwBack == 0:  #Atras
             SquidT -= 2.5
             if SquidT <= -10:
@@ -318,12 +327,17 @@ while not done:
                 SquidSwBack = 0 #reset atras
                 
     if keys[pygame.K_d]:
+        if Squid_R > -25:
+            Squid_R -= 2.0
+            
         # Rotar el calamar a la izquierda
         Player_Rotation -= 2.0
         if Player_Rotation < 0:
             Player_Rotation += 360
 
     if keys[pygame.K_a]:
+        if Squid_R < 25:
+            Squid_R += 2.0
         # Rotar el calamar a la derecha
         Player_Rotation += 2.0
         if Player_Rotation >= 360:
@@ -335,6 +349,7 @@ while not done:
     rad = math.radians(car_angle)
     dir_x = math.sin(rad)
     dir_z = math.cos(rad)
+    wheel_dir_x = math.sin(math.radians(car_angle + wheel_rotate))
     if keys[pygame.K_k]:
         Maquina_X += dir_x * move_speed
         Maquina_Z += dir_z * move_speed

@@ -5,8 +5,10 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
-
+import time
+import threading
 import math
+import requests
 
 # Se carga el archivo de la clase Cubo
 import sys
@@ -16,6 +18,11 @@ from objloader import *
 
 screen_width = 1200
 screen_height = 800
+#Manejo de peticiones
+last_update_time = 0
+update_interval = 0.1
+cached_data = None  
+data_lock = threading.Lock()
 #vc para el obser.
 FOVY=60.0
 ZNEAR=0.01
@@ -275,6 +282,7 @@ def SquidIzq():
 def Maquina():
     glPushMatrix()
     glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
+    glRotatef(car_angle, 0.0, 1.0, 0.0)
     glScale(Maquina_Scale,Maquina_Scale,Maquina_Scale)
     objetos[3].render()
     glPopMatrix()
@@ -380,9 +388,32 @@ def UpdatePaintTrail():
         if len(paint_trail) > max_trail_points:
             paint_trail.pop(0)  # Eliminar el punto más antiguo
     
+
+def fetch_data_background():
+    global cached_data, last_update_time
+    
+    while not done:
+        try:
+            current_time = time.time()
+            if current_time - last_update_time >= update_interval:
+                res = requests.get("http://localhost:8000/run", timeout=1)
+                data = res.json()
+                
+                # Guardar datos
+                with data_lock:
+                    cached_data = data
+                    last_update_time = current_time
+        except Exception as e:
+            print(f"Error en background: {e}")
+        
+        time.sleep(0.05)  # Pequeña pausa
+
 def display():
+    global Player_X, Player_Z, cached_data
+    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     Axis()
+    
     #Dibujo del plano gris
     glColor3f(0.3, 0.3, 0.3)
     glBegin(GL_QUADS)
@@ -392,19 +423,27 @@ def display():
     glVertex3d(DimBoard, 0, -DimBoard)
     glEnd()
 
-    #Dibujo de evironment
-    glPushMatrix()
-    glScale(1.0,1.0,1.0) #Este Scale ya no es necesario
-    objetos[6].render()
-    glPopMatrix()
-
-    # Dibujar el rastro de pintura antes de los objetos para que quede debajo
     DrawPaintTrail()
 
+    # Usar los datos cacheados (NO bloquea)
+    if cached_data is not None:
+        with data_lock:
+            data = cached_data
+        
+        pacman = next((p for p in data['pacmans'] if p['id'] == 4), None)
+        
+        if pacman:
+            matrix_size = 200
+            board_size = DimBoard
+            
+            Player_X = (pacman['pos'][0] / matrix_size) * board_size * 2 - board_size
+            Player_Z = (pacman['pos'][1] / matrix_size) * board_size * 2 - board_size
+    
     #Calamar
     SquidFace()
     SquidDer()
     SquidIzq()
+    
     #Maquina
     Maquina()
     MaquinaArm()
@@ -414,7 +453,19 @@ def display():
     
 done = False
 Init()
-# Inicializar el rastro con la posición inicial del calamar
+
+# Iniciar thread de actualización en background
+update_thread = threading.Thread(target=fetch_data_background, daemon=True)
+update_thread.start()
+
+# Obtener datos iniciales
+try:
+    res = requests.get("http://localhost:8000/run", timeout=2)
+    cached_data = res.json()
+except Exception as e:
+    print(f"Error inicial: {e}")
+
+# Inicializar el rastro
 paint_trail.append((Player_X, Player_Y, Player_Z))
 last_trail_x = Player_X
 last_trail_z = Player_Z

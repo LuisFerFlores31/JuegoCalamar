@@ -40,11 +40,14 @@ Z_MIN=-500
 Z_MAX=500
 #Dimension del plano
 DimBoard = 200
+zero = 0.0
+one = 1.0
 
 #Variables del calamar
 Player_X = 0.0
 Player_Y = 0.0
 Player_Z = 0.0
+Squid_Scale = 20.0
 Player_Rotation = 0.0  # Rotación del calamar en grados
 SquidT = 0.0
 SquidSw = 0
@@ -62,6 +65,7 @@ min_trail_distance = 2.0  # Distancia mínima para agregar un nuevo punto al ras
 Maquina_X = 0.0
 Maquina_Y = 0.0
 Maquina_Z = 0.0
+Maquina_Scale = 10.0
 car_angle = 0.0
 wheel_angle = 0.0
 wheel_rotate = 0.0
@@ -136,17 +140,12 @@ def Init():
     #objetos.append(OBJ("WheelLoader/ArmMaquina.obj" , swapyz=True)) #4
     objetos.append(OBJ("WheelLoader/GArmMaquina.obj" , swapyz=True)) #4
 
-    
     #objetos.append(OBJ("WheelLoader/FWMaquina.obj" , swapyz=True))
     #objetos.append(OBJ("WheelLoader/BWMaquina.obj" , swapyz=True))
     objetos.append(OBJ("WheelLoader/GWMaquina.obj" , swapyz=True)) #5
     #objetos.append(OBJ("Excavator/Excavator.obj" , swapyz=True))
     #environment 
-    objetos.append(OBJ("Envirioment/ENVPortMakrel2.obj" , swapyz=True)) #6
-    
-
-    
-    
+    objetos.append(OBJ("Envirioment/ENVPortMakrel2.obj" , swapyz=True)) #6   
 
     for i in range(len(objetos)): 
         objetos[i].generate()
@@ -162,47 +161,121 @@ def lookat():
     gluLookAt(EYE_X,EYE_Y,EYE_Z,CENTER_X,CENTER_Y,CENTER_Z,UP_X,UP_Y,UP_Z)
     
 def SquidFace():
-    glPushMatrix()  
-    glTranslatef(Player_X, Player_Y , Player_Z)
-    glRotatef(Player_Rotation + Squid_R, 0, 1, 0)  # Rotar el calamar según su orientación
-    #glRotatef(Squid_R, 0, 1, 0)  # Rotar el calamar según su orientación
-
-    #correcciones para dibujar el objeto en plano XZ
-    #esto depende de cada objeto
-    #glRotatef(-90.0, 1.0, 0.0, 0.0)
-    #glTranslatef(0.0, 15.0, 0.0)
-    glScale(20.0,20.0,20.0)
-    objetos[0].render()  
-    glPopMatrix()
+    glPushMatrix()
+    #Calculo trigonometrico para la matriz de transformacion
+    theta_rad = math.radians(Player_Rotation + Squid_R)
+    cos_theta = math.cos(theta_rad)
+    sin_theta = math.sin(theta_rad)
+        
+    # Elementos de la columna 0
+    m0 = cos_theta * Squid_Scale
+    #m1 = zero
+    m2 = -sin_theta * Squid_Scale
+    #m3 = zero
     
+    # Elementos de la columna 1
+    #m4 = zero
+    m5 = Squid_Scale
+    #m6 = zero
+    #m7 = zero
+    
+    # Elementos de la columna 2
+    m8 = sin_theta * Squid_Scale
+    #m9 = zero
+    m10 = cos_theta * Squid_Scale
+    #m11 = zero
+    
+    # Elementos de la columna 3 (Traslación)
+    m12 = Player_X
+    m13 = Player_Y
+    m14 = Player_Z
+    #m15 = one
+
+    # La lista final almacena referencias a los valores
+    squid_matrix = [
+        m0, zero, m2, zero,  # Columna 0
+        zero, m5, zero, zero,  # Columna 1
+        m8, zero, m10, zero, # Columna 2
+        m12, m13, m14, one # Columna 3
+    ]
+    glMultMatrixf(squid_matrix)
+    objetos[0].render()
+    glPopMatrix()
+
 def SquidDer():
     glPushMatrix()
-    glTranslatef(Player_X, Player_Y , Player_Z)
-    glRotatef(Player_Rotation, 0, 1, 0)  # Rotar el calamar según su orientación
-    glRotatef(-SquidT, 0, 1, 0)    # Rota en Y para simular el movimiento de nado de lado a lado
-    glScale(20.0,20.0,20.0)
-    objetos[1].render()
-    glPopMatrix()
+    
+    # Calculo trigonometrico para la matriz de transformacion
+    theta_rad = math.radians(Player_Rotation - SquidT)
+    cos_theta = math.cos(theta_rad)
+    sin_theta = math.sin(theta_rad)
+        
+    # Elementos de la columna 0
+    m0 = cos_theta * Squid_Scale
+    m2 = -sin_theta * Squid_Scale
+    
+    # Elementos de la columna 1
+    m5 = Squid_Scale
+    
+    # Elementos de la columna 2
+    m8 = sin_theta * Squid_Scale
+    m10 = cos_theta * Squid_Scale
+    
+    # Elementos de la columna 3 (Traslación)
+    m12 = Player_X
+    m13 = Player_Y
+    m14 = Player_Z
+
+    squid_matrix = [
+        m0, zero, m2, zero,  # Columna 0
+        zero, m5, zero, zero,  # Columna 1
+        m8, zero, m10, zero, # Columna 2
+        m12, m13, m14, one  # Columna 3
+    ]
+    
+    glMultMatrixf(squid_matrix)
+    objetos[1].render() 
+    glPopMatrix() 
 
 def SquidIzq():
     glPushMatrix()
-    glTranslatef(Player_X, Player_Y , Player_Z)
-    glRotatef(Player_Rotation, 0, 1, 0)  # Rotar el calamar según su orientación
-    glRotatef(SquidT, 0, 1, 0)   # Rota en Y en el sentido contrario para simular el movimiento de nado
-    glScale(20.0,20.0,20.0)
+    # El ángulo es (Player_Rotation + SquidT)
+    theta_rad = math.radians(Player_Rotation + SquidT)
+    cos_theta = math.cos(theta_rad)
+    sin_theta = math.sin(theta_rad)
+            
+    # Elementos de la columna 0
+    m0 = cos_theta * Squid_Scale
+    m2 = -sin_theta * Squid_Scale
+    
+    # Elementos de la columna 1
+    m5 = Squid_Scale
+    
+    # Elementos de la columna 2
+    m8 = sin_theta * Squid_Scale
+    m10 = cos_theta * Squid_Scale
+    
+    # Elementos de la columna 3 (Traslación)
+    m12 = Player_X
+    m13 = Player_Y
+    m14 = Player_Z
+
+    squid_matrix = [
+        m0, zero, m2, zero,  # Columna 0
+        zero, m5, zero, zero,  # Columna 1
+        m8, zero, m10, zero, # Columna 2
+        m12, m13, m14, one  # Columna 3
+    ]
+    glMultMatrixf(squid_matrix)
     objetos[2].render()
     glPopMatrix()
-        
+     
         
 # Dibuja la maquina Wheel Loader
 def Maquina():
     glPushMatrix()
     glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
-    glRotatef(car_angle, 0.0, 1.0, 0.0)
-    
-    #glTranslatef(100.0, 0.0 , 100.0)
-    #glRotatef(0.0, 0, 1, 0)  
-    glScale(10.0,10.0,10.0)
+    glScale(Maquina_Scale,Maquina_Scale,Maquina_Scale)
     objetos[3].render()
     glPopMatrix()
     
@@ -212,7 +285,7 @@ def MaquinaArm():
     glRotatef(car_angle, 0.0, 1.0, 0.0)
     glTranslatef(0.0, 20.0 , -10.0) #ajuste de offset
     glRotatef(arm_angle, 1.0, 0.0, 0.0)  #Elevacion del brazo
-    glScale(10.0,10.0,10.0)
+    glScale(Maquina_Scale,Maquina_Scale,Maquina_Scale)
     objetos[4].render()
     glPopMatrix()
     
@@ -223,7 +296,7 @@ def MaquinaFW():
     glTranslatef(0.0, 10.0 , -19.0) #ajuste de offset
     glRotatef(wheel_rotate, 0.0, 1.0, 0.0)  #Vuelta de las ruedas delanteras
     glRotatef(wheel_angle, 1.0, 0.0, 0.0) #giro de las ruedas
-    glScale(10.0,10.0,10.0)
+    glScale(Maquina_Scale,Maquina_Scale,Maquina_Scale)
     objetos[5].render()
     glPopMatrix()
     
@@ -235,7 +308,7 @@ def MaquinaBW():
     glTranslatef(0.0, 10.0 , 21.0) #ajuste de offset
     #glRotatef(wheel_rotate, 0.0, 1.0, 0.0)
     glRotatef(wheel_angle, 1.0, 0.0, 0.0) #giro de las ruedas
-    glScale(10.0,10.0,10.0)
+    glScale(Maquina_Scale,Maquina_Scale,Maquina_Scale)
     objetos[5].render()
     glPopMatrix()
 
@@ -276,7 +349,7 @@ def DrawPaintTrail():
             v4_x = x2 + perp_x * half_width
             v4_z = z2 + perp_z * half_width
             
-            y_offset = 0.1 #offset para evitar conflictos
+            y_offset = 0.5 #offset para evitar conflictos
             glVertex3f(v1_x, y1 + y_offset, v1_z)
             glVertex3f(v2_x, y1 + y_offset, v2_z)
             glVertex3f(v3_x, y2 + y_offset, v3_z)
@@ -310,7 +383,7 @@ def UpdatePaintTrail():
 def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     Axis()
-    #Se dibuja el plano gris
+    #Dibujo del plano gris
     glColor3f(0.3, 0.3, 0.3)
     glBegin(GL_QUADS)
     glVertex3d(-DimBoard, 0, -DimBoard)
@@ -318,7 +391,7 @@ def display():
     glVertex3d(DimBoard, 0, DimBoard)
     glVertex3d(DimBoard, 0, -DimBoard)
     glEnd()
-    
+
     #Dibujo de evironment
     glPushMatrix()
     glScale(1.0,1.0,1.0) #Este Scale ya no es necesario
@@ -432,12 +505,7 @@ while not done:
             Player_Rotation -= 360   
             
              
-    #Maquina
-    # Controles Carro (IJKL)
-    # Ahora el vector de movimiento se calcula usando el ángulo hacia el que apuntan
-    # las ruedas delanteras: (car_angle + wheel_rotate). Además la orientación
-    # del carro (car_angle) se ajusta ligeramente mientras se mueve para simular
-    # giro basado en la dirección de las ruedas.
+    #Control de la maquina Wheel Loader
     heading = car_angle + wheel_rotate
     rad_h = math.radians(heading)
     dir_x = math.sin(rad_h)

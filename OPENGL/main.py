@@ -51,6 +51,13 @@ SquidSw = 0
 SquidSwBack = 0
 Squid_R = 0.0
 
+# Variables para el rastro de pintura
+paint_trail = []  # Lista de puntos del rastro [(x, y, z), ...]
+trail_width = 15.0  # Ancho del rastro
+last_trail_x = Player_X
+last_trail_z = Player_Z
+min_trail_distance = 2.0  # Distancia mínima para agregar un nuevo punto al rastro
+
 #variables de la maquina Wheel Loader
 Maquina_X = 0.0
 Maquina_Y = 0.0
@@ -231,6 +238,74 @@ def MaquinaBW():
     glScale(10.0,10.0,10.0)
     objetos[5].render()
     glPopMatrix()
+
+def DrawPaintTrail():
+    """Dibuja el rastro de pintura del calamar en el suelo"""
+    if len(paint_trail) < 2:
+        return
+    
+    # Deshabilitar iluminación para el rastro (opcional, para mejor visibilidad)
+    glDisable(GL_LIGHTING)
+    
+    # Color del rastro (magenta/rosa estilo Splatoon)
+    glColor3f(1.0, 0.2, 0.8)  # Rosa brillante
+    
+    # Dibujar el rastro como una serie de quads conectados
+    glBegin(GL_QUADS)
+    for i in range(len(paint_trail) - 1):
+        x1, y1, z1 = paint_trail[i]
+        x2, y2, z2 = paint_trail[i + 1]
+        
+        # Calcular dirección perpendicular al segmento
+        dx = x2 - x1
+        dz = z2 - z1
+        length = math.sqrt(dx * dx + dz * dz)
+        if length > 0:
+            # Vector perpendicular normalizado
+            perp_x = -dz / length
+            perp_z = dx / length
+            
+            # Calcular los 4 vértices del quad
+            half_width = trail_width / 2.0
+            v1_x = x1 + perp_x * half_width
+            v1_z = z1 + perp_z * half_width
+            v2_x = x1 - perp_x * half_width
+            v2_z = z1 - perp_z * half_width
+            v3_x = x2 - perp_x * half_width
+            v3_z = z2 - perp_z * half_width
+            v4_x = x2 + perp_x * half_width
+            v4_z = z2 + perp_z * half_width
+            
+            y_offset = 0.1 #offset para evitar conflictos
+            glVertex3f(v1_x, y1 + y_offset, v1_z)
+            glVertex3f(v2_x, y1 + y_offset, v2_z)
+            glVertex3f(v3_x, y2 + y_offset, v3_z)
+            glVertex3f(v4_x, y2 + y_offset, v4_z)
+    
+    glEnd()
+    
+    # Rehabilitar iluminación
+    glEnable(GL_LIGHTING)
+
+def UpdatePaintTrail():
+    """Actualiza el rastro de pintura agregando un nuevo punto si el calamar se ha movido suficiente"""
+    global last_trail_x, last_trail_z, paint_trail
+    
+    # Calcular distancia desde el último punto del rastro
+    dx = Player_X - last_trail_x
+    dz = Player_Z - last_trail_z
+    distance = math.sqrt(dx * dx + dz * dz)
+    
+    # Si el calamar se ha movido suficiente, agregar un nuevo punto al rastro
+    if distance >= min_trail_distance:
+        paint_trail.append((Player_X, Player_Y, Player_Z))
+        last_trail_x = Player_X
+        last_trail_z = Player_Z
+        
+        # Limitar el tamaño del rastro para evitar problemas de rendimiento
+        max_trail_points = 500
+        if len(paint_trail) > max_trail_points:
+            paint_trail.pop(0)  # Eliminar el punto más antiguo
     
 def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
@@ -250,6 +325,9 @@ def display():
     objetos[6].render()
     glPopMatrix()
 
+    # Dibujar el rastro de pintura antes de los objetos para que quede debajo
+    DrawPaintTrail()
+
     #Calamar
     SquidFace()
     SquidDer()
@@ -263,6 +341,10 @@ def display():
     
 done = False
 Init()
+# Inicializar el rastro con la posición inicial del calamar
+paint_trail.append((Player_X, Player_Y, Player_Z))
+last_trail_x = Player_X
+last_trail_z = Player_Z
 move_speed = 1.0
 turn_speed = 1.0
 while not done:
@@ -299,18 +381,18 @@ while not done:
     if keys[pygame.K_w]:
         SquidSwBack = 0  #Reset animacion S
         if Squid_R > 0:
-            Squid_R -= 0.5
+            Squid_R -= 2.5  # Doble velocidad de recuperación de rotación
         if Squid_R < 0:
-            Squid_R += 0.5
+            Squid_R += 2.5
         if SquidSw == 0:  #Adelante
-            SquidT += 1.5
+            SquidT += 4.0  # Animacion más rápida
             if SquidT >= 45:
                 SquidSw = 1  #Atras
         else:
-            SquidT -= 2.5
+            SquidT -= 6.0  # Animacion más rápida
             # Movimiento hacia adelante
-            Player_X -= dir_x * 0.5
-            Player_Z -= dir_z * 0.5
+            Player_X -= dir_x * 1.5  # Más rápido
+            Player_Z -= dir_z * 1.5
             
             if SquidT <= -10:
                 SquidSw = 0  #reset adelante
@@ -318,16 +400,16 @@ while not done:
     if keys[pygame.K_s]:
         SquidSw = 0  #Reset animacion W 
         if Squid_R < 0:
-            Squid_R += 2.0
+            Squid_R += 4.0  # Doble velocidad de recuperación de rotación
         if SquidSwBack == 0:  #Atras
-            SquidT -= 2.5
+            SquidT -= 6.0  # Animacion más rápida
             if SquidT <= -10:
                 SquidSwBack = 1 #adelante
         else:
-            SquidT += 1.5
+            SquidT += 4.0  # Animacion más rápida
             # Movimiento hacia atrás
-            Player_X += dir_x * 0.3
-            Player_Z += dir_z * 0.3
+            Player_X += dir_x * 1.0  # Más rápido que antes
+            Player_Z += dir_z * 1.0
             
             if SquidT >= 45:
                 SquidSwBack = 0 #reset atras
@@ -401,6 +483,9 @@ while not done:
    #     arm_angle = 45.0  #valor para el ángulo de elevación del brazo
    # if not keys[pygame.K_p]:
    #     arm_angle = -15.0  #Vuelve el brazo a la posición baja si no se presiona P
+    
+    # Actualizar el rastro de pintura del calamar
+    UpdatePaintTrail()
     
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:

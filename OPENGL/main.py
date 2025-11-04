@@ -40,8 +40,6 @@ Z_MIN=-500
 Z_MAX=500
 #Dimension del plano
 DimBoard = 200
-zero = 0.0
-one = 1.0
 
 #Variables del calamar
 Player_X = 0.0
@@ -53,6 +51,8 @@ SquidT = 0.0
 SquidSw = 0
 SquidSwBack = 0
 Squid_R = 0.0
+zero = 0.0
+one = 1.0
 
 # Variables para el rastro de pintura
 paint_trail = []  # Lista de puntos del rastro [(x, y, z), ...]
@@ -70,6 +70,8 @@ car_angle = 0.0
 wheel_angle = 0.0
 wheel_rotate = 0.0
 arm_angle = -15.0  # Ángulo inicial del brazo
+T_offset_y = 20.0
+T_offset_z = -10.0
 
 
 objetos = []
@@ -273,42 +275,175 @@ def SquidIzq():
         
 # Dibuja la maquina Wheel Loader
 def Maquina():
-    glPushMatrix()
-    glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
-    glScale(Maquina_Scale,Maquina_Scale,Maquina_Scale)
+    glPushMatrix()   
+    # (Rotación en Y)
+    theta_rad = math.radians(car_angle)
+    cos_theta = math.cos(theta_rad)
+    sin_theta = math.sin(theta_rad)
+    # (Resultado T * Ry * S)
+    
+    # Elementos de la columna 0
+    m0 = cos_theta * Maquina_Scale
+    m2 = -sin_theta * Maquina_Scale
+    
+    # Elementos de la columna 1
+    m5 = Maquina_Scale
+    
+    # Elementos de la columna 2
+    m8 = sin_theta * Maquina_Scale
+    m10 = cos_theta * Maquina_Scale
+    
+    # Elementos de la columna 3 (Traslación)
+    m12 = Maquina_X
+    m13 = Maquina_Y
+    m14 = Maquina_Z
+
+    maquina_matrix = [
+        m0, 0.0, m2, 0.0,  # Columna 0
+        0.0, m5, 0.0, 0.0,  # Columna 1
+        m8, 0.0, m10, 0.0, # Columna 2
+        m12, m13, m14, 1.0  # Columna 3
+    ]
+    
+    glMultMatrixf(maquina_matrix)
     objetos[3].render()
     glPopMatrix()
     
 def MaquinaArm():
     glPushMatrix()
-    glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
-    glRotatef(car_angle, 0.0, 1.0, 0.0)
-    glTranslatef(0.0, 20.0 , -10.0) #ajuste de offset
-    glRotatef(arm_angle, 1.0, 0.0, 0.0)  #Elevacion del brazo
-    glScale(Maquina_Scale,Maquina_Scale,Maquina_Scale)
+    Sc = Maquina_Scale # Alias corto para la escala
+    # Ángulo del chasis (Rotación en Y)
+    rad_car = math.radians(car_angle)
+    ct = math.cos(rad_car) # cos(theta)
+    st = math.sin(rad_car) # sin(theta)
+    
+    # Ángulo del brazo (Rotación en X)
+    rad_arm = math.radians(arm_angle)
+    ca = math.cos(rad_arm) # cos(alpha)
+    sa = math.sin(rad_arm) # sin(alpha)
+    
+    # Esta es la parte de Rotación (Ry * Rx) y Escala (S)
+    # Elementos de la columna 0 (Ry * Rx * S)[Col 0]
+    m0 = ct * Sc
+    m2 = -st * Sc  # (Estándar GL)
+    
+    # Elementos de la columna 1 (Ry * Rx * S)[Col 1]
+    m4 = st * sa * Sc
+    m5 = ca * Sc
+    m6 = ct * sa * Sc
+    
+    # Elementos de la columna 2 (Ry * Rx * S)[Col 2]
+    m8 = st * ca * Sc
+    m9 = -sa * Sc
+    m10 = ct * ca * Sc
+    
+    m12 = Maquina_X - (T_offset_z * st) # Maquina_X + (-10.0 * st)
+    
+    m12 = Maquina_X + (T_offset_z * st)
+    m13 = Maquina_Y + T_offset_y
+    m14 = Maquina_Z + (T_offset_z * ct)
+
+    # --- 4. Definir la matriz (formato Column-Major) ---
+    maquina_arm_matrix = [
+        m0, 0.0, m2, 0.0,   # Columna 0
+        m4, m5, m6, 0.0,   # Columna 1
+        m8, m9, m10, 0.0,  # Columna 2
+        m12, m13, m14, 1.0   # Columna 3
+    ]
+    glMultMatrixf(maquina_arm_matrix)
     objetos[4].render()
     glPopMatrix()
     
 def MaquinaFW():
     glPushMatrix()
-    glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
-    glRotatef(car_angle, 0.0, 1.0, 0.0)
-    glTranslatef(0.0, 10.0 , -19.0) #ajuste de offset
-    glRotatef(wheel_rotate, 0.0, 1.0, 0.0)  #Vuelta de las ruedas delanteras
-    glRotatef(wheel_angle, 1.0, 0.0, 0.0) #giro de las ruedas
-    glScale(Maquina_Scale,Maquina_Scale,Maquina_Scale)
+    Sc = Maquina_Scale # Alias corto para la escala
+    rad_car = math.radians(car_angle)
+    ct_c = math.cos(rad_car) # cos(theta) del chasis
+    st_c = math.sin(rad_car) # sin(theta) del chasis
+
+    #Trig para la ROTACIÓN 
+    # A. Ángulo combinado Ry(car_angle) * Ry(wheel_rotate) = Ry(car_angle + wheel_rotate)
+    rad_combo = math.radians(car_angle + wheel_rotate)
+    ct_r = math.cos(rad_combo) # cos(theta) rotación combinada
+    st_r = math.sin(rad_combo) # sin(theta) rotación combinada
+    
+    # B. Ángulo del giro (Rx)
+    rad_wheel_x = math.radians(wheel_angle)
+    ca_w = math.cos(rad_wheel_x) # cos(alpha) de la rueda
+    sa_w = math.sin(rad_wheel_x) # sin(alpha) de la rueda
+    
+    m12 = Maquina_X - (19.0 * st_c)
+    m13 = Maquina_Y + 10.0
+    m14 = Maquina_Z - (19.0 * ct_c)
+
+    # R_final = Ry(combo) * Rx(wheel) * S
+    # Elementos de la columna 0
+    m0 = ct_r * Sc
+    m2 = -st_r * Sc
+    
+    # Elementos de la columna 1
+    m4 = st_r * sa_w * Sc
+    m5 = ca_w * Sc
+    m6 = ct_r * sa_w * Sc
+    
+    # Elementos de la columna 2
+    m8 = st_r * ca_w * Sc
+    m9 = -sa_w * Sc
+    m10 = ct_r * ca_w * Sc
+
+    # --- 5. Definir la matriz (formato Column-Major) ---
+    maquina_fw_matrix = [
+        m0, 0.0, m2, 0.0,   # Columna 0
+        m4, m5, m6, 0.0,   # Columna 1
+        m8, m9, m10, 0.0,  # Columna 2
+        m12, m13, m14, 1.0   # Columna 3
+    ]
+    
+    glMultMatrixf(maquina_fw_matrix)
     objetos[5].render()
     glPopMatrix()
     
 def MaquinaBW():
     glPushMatrix()
-    #Mover y rotar el carrito
-    glTranslatef(Maquina_X, Maquina_Y, Maquina_Z)
-    glRotatef(car_angle, 0.0, 1.0, 0.0)
-    glTranslatef(0.0, 10.0 , 21.0) #ajuste de offset
-    #glRotatef(wheel_rotate, 0.0, 1.0, 0.0)
-    glRotatef(wheel_angle, 1.0, 0.0, 0.0) #giro de las ruedas
-    glScale(Maquina_Scale,Maquina_Scale,Maquina_Scale)
+    Sc = Maquina_Scale # Alias corto para la escala
+    # --- 1. Trig para la TRASLACIÓN y ROTACIÓN Ry ---
+    # (Depende de car_angle)
+    rad_car = math.radians(car_angle)
+    ct = math.cos(rad_car) # cos(theta) chasis
+    st = math.sin(rad_car) # sin(theta) chasis
+
+    #Trig para la ROTACIÓN Rx
+    # (Depende de wheel_angle)
+    rad_wheel = math.radians(wheel_angle)
+    ca_w = math.cos(rad_wheel) # cos(alpha) rueda
+    sa_w = math.sin(rad_wheel) # sin(alpha) rueda
+    
+    m12 = Maquina_X + (21.0 * st)
+    m13 = Maquina_Y + 10.0
+    m14 = Maquina_Z + (21.0 * ct)
+    
+    # Elementos de la columna 0
+    m0 = ct * Sc
+    m2 = -st * Sc
+    
+    # Elementos de la columna 1
+    m4 = st * sa_w * Sc
+    m5 = ca_w * Sc
+    m6 = ct * sa_w * Sc
+    
+    # Elementos de la columna 2
+    m8 = st * ca_w * Sc
+    m9 = -sa_w * Sc
+    m10 = ct * ca_w * Sc
+
+    # (Usando 0.0 y 1.0 directamente para ahorrar variables)
+    maquina_bw_matrix = [
+        m0, 0.0, m2, 0.0,   # Columna 0
+        m4, m5, m6, 0.0,   # Columna 1
+        m8, m9, m10, 0.0,  # Columna 2
+        m12, m13, m14, 1.0   # Columna 3
+    ]
+    glMultMatrixf(maquina_bw_matrix)
     objetos[5].render()
     glPopMatrix()
 

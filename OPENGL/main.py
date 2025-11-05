@@ -5,6 +5,7 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+#Librerias para la conexion
 import time
 import threading
 import math
@@ -18,7 +19,7 @@ from objloader import *
 
 screen_width = 1200
 screen_height = 800
-#Manejo de peticiones
+#Manejo de peticiones de Julia
 last_update_time = 0
 update_interval = 0.1
 cached_data = None  
@@ -388,7 +389,7 @@ def UpdatePaintTrail():
         if len(paint_trail) > max_trail_points:
             paint_trail.pop(0)  # Eliminar el punto más antiguo
     
-
+# MUY IMPORTANTE CABRON -  aqui se maneja las peticiones a julia pero a segundo plano, la puedes modificar para que se reduzcan o aumenten las peticiones
 def fetch_data_background():
     global cached_data, last_update_time
     
@@ -406,10 +407,11 @@ def fetch_data_background():
         except Exception as e:
             print(f"Error en background: {e}")
         
-        time.sleep(0.05)  # Pequeña pausa
+        time.sleep(0.05)  
 
 def display():
-    global Player_X, Player_Z, cached_data
+    global Player_X, Player_Z, Maquina_X, Maquina_Z, cached_data
+
     
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     Axis()
@@ -424,20 +426,26 @@ def display():
     glEnd()
 
     DrawPaintTrail()
-
-    # Usar los datos cacheados (NO bloquea)
+    # Aqui se hace la actualizacion de las posiciones del calamar y la maquina
     if cached_data is not None:
         with data_lock:
             data = cached_data
         
-        pacman = next((p for p in data['pacmans'] if p['id'] == 4), None)
-        
-        if pacman:
-            matrix_size = 200
-            board_size = DimBoard
-            
-            Player_X = (pacman['pos'][0] / matrix_size) * board_size * 2 - board_size
-            Player_Z = (pacman['pos'][1] / matrix_size) * board_size * 2 - board_size
+            pacman = data['pacmans'][0] if data['pacmans'] else None
+            ghosts = data['ghosts'][0] if data['ghosts'] else None
+
+            if pacman:
+                matrix_size = 40
+                board_size = DimBoard
+                Player_X = (pacman['pos'][0] / matrix_size) * board_size * 2 - board_size
+                Player_Z = (pacman['pos'][1] / matrix_size) * board_size * 2 - board_size
+
+            if ghosts:
+                matrix_size = 40
+                board_size = DimBoard
+                Maquina_X = (ghosts['pos'][0] / matrix_size) * board_size * 2 - board_size
+                Maquina_Z = (ghosts['pos'][1] / matrix_size) * board_size * 2 - board_size
+
     
     #Calamar
     SquidFace()
@@ -454,11 +462,11 @@ def display():
 done = False
 Init()
 
-# Iniciar thread de actualización en background
+# Actualizacion background
 update_thread = threading.Thread(target=fetch_data_background, daemon=True)
 update_thread.start()
 
-# Obtener datos iniciales
+#Se jalan los datos iniciales: El Json basicamente, este esta en el wepapi de Julia
 try:
     res = requests.get("http://localhost:8000/run", timeout=2)
     cached_data = res.json()

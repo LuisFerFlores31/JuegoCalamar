@@ -51,8 +51,6 @@ SquidT = 0.0
 SquidSw = 0
 SquidSwBack = 0
 Squid_R = 0.0
-zero = 0.0
-one = 1.0
 
 # Variables para el rastro de pintura
 paint_trail = []  # Lista de puntos del rastro [(x, y, z), ...]
@@ -171,34 +169,26 @@ def SquidFace():
         
     # Elementos de la columna 0
     m0 = cos_theta * Squid_Scale
-    #m1 = zero
     m2 = -sin_theta * Squid_Scale
-    #m3 = zero
     
     # Elementos de la columna 1
-    #m4 = zero
     m5 = Squid_Scale
-    #m6 = zero
-    #m7 = zero
     
     # Elementos de la columna 2
     m8 = sin_theta * Squid_Scale
-    #m9 = zero
     m10 = cos_theta * Squid_Scale
-    #m11 = zero
     
     # Elementos de la columna 3 (Traslación)
     m12 = Player_X
     m13 = Player_Y
     m14 = Player_Z
-    #m15 = one
 
     # La lista final almacena referencias a los valores
     squid_matrix = [
-        m0, zero, m2, zero,  # Columna 0
-        zero, m5, zero, zero,  # Columna 1
-        m8, zero, m10, zero, # Columna 2
-        m12, m13, m14, one # Columna 3
+        m0, 0.0, m2, 0.0,  # Columna 0
+        0.0, m5, 0.0, 0.0,  # Columna 1
+        m8, 0.0, m10, 0.0, # Columna 2
+        m12, m13, m14, 1.0 # Columna 3
     ]
     glMultMatrixf(squid_matrix)
     objetos[0].render()
@@ -229,10 +219,10 @@ def SquidDer():
     m14 = Player_Z
 
     squid_matrix = [
-        m0, zero, m2, zero,  # Columna 0
-        zero, m5, zero, zero,  # Columna 1
-        m8, zero, m10, zero, # Columna 2
-        m12, m13, m14, one  # Columna 3
+        m0, 0.0, m2, 0.0,  # Columna 0
+        0.0, m5, 0.0, 0.0,  # Columna 1
+        m8, 0.0, m10, 0.0, # Columna 2
+        m12, m13, m14, 1.0  # Columna 3
     ]
     
     glMultMatrixf(squid_matrix)
@@ -263,10 +253,10 @@ def SquidIzq():
     m14 = Player_Z
 
     squid_matrix = [
-        m0, zero, m2, zero,  # Columna 0
-        zero, m5, zero, zero,  # Columna 1
-        m8, zero, m10, zero, # Columna 2
-        m12, m13, m14, one  # Columna 3
+        m0, 0.0, m2, 0.0,  # Columna 0
+        0.0, m5, 0.0, 0.0,  # Columna 1
+        m8, 0.0, m10, 0.0, # Columna 2
+        m12, m13, m14, 1.0  # Columna 3
     ]
     glMultMatrixf(squid_matrix)
     objetos[2].render()

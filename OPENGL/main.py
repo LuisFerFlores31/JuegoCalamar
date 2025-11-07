@@ -189,13 +189,8 @@ def Init():
     objetos.append(OBJ("Player_Squid/IzqSquid.obj" , swapyz=True)) #2
     
     objetos.append(OBJ("WheelLoader/BaseMaquina.obj" , swapyz=True)) #3
-    #objetos.append(OBJ("WheelLoader/ArmMaquina.obj" , swapyz=True)) #4
     objetos.append(OBJ("WheelLoader/GArmMaquina.obj" , swapyz=True)) #4
-
-    #objetos.append(OBJ("WheelLoader/FWMaquina.obj" , swapyz=True))
-    #objetos.append(OBJ("WheelLoader/BWMaquina.obj" , swapyz=True))
     objetos.append(OBJ("WheelLoader/GWMaquina.obj" , swapyz=True)) #5
-    #objetos.append(OBJ("Excavator/Excavator.obj" , swapyz=True))
     #environment 
     objetos.append(OBJ("Envirioment/ENVPortMakrel2.obj" , swapyz=True)) #6   
 

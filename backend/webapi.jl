@@ -4,12 +4,27 @@ using UUIDs
 
 route("/run") do
     run!(model, 1)
-    agents = []
-    for ghost in allagents(model)
-        push!(agents, ghost)
+
+    pacmans = []
+    ghosts = []
+
+    for agent in allagents(model)
+        if agent isa Pacman
+            push!(pacmans, agent)
+        elseif agent isa Ghost
+            push!(ghosts, agent)
+        end
     end
 
-    json(Dict(:msg => "Adios", "agents" => agents))
+    visited = collect(model.visited_cells)
+
+    json(Dict(
+        :msg => "Simulación en curso",
+        "pacmans" => pacmans,
+        "ghosts" => ghosts,
+        "visited" => visited,
+        "matrix" => [collect(row) for row in eachrow(matrix)]
+    ))
 end
 
 Genie.config.run_as_server = true

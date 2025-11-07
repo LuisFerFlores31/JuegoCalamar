@@ -5,11 +5,13 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+
 #Librerias para la conexion
 import time
 import threading
 import math
 import requests
+
 
 # Se carga el archivo de la clase Cubo
 import sys
@@ -60,6 +62,16 @@ SquidSw = 0
 SquidSwBack = 0
 Squid_R = 0.0
 
+# Instancias adicionales de calamares (4 en total, la 0 corresponde al jugador actual)
+# Cada instancia tiene coordenadas y rotación independientes
+NUM_SQUIDS = 4
+squid_instances = [
+    {"x": 0.0,   "y": 0.0, "z": 0.0,   "rotation": 0.0},
+    {"x": -80.0, "y": 0.0, "z": -80.0, "rotation": 0.0},
+    {"x": 80.0,  "y": 0.0, "z": -80.0, "rotation": 0.0},
+    {"x": 0.0,   "y": 0.0, "z": 120.0, "rotation": 0.0},
+]
+
 # Variables para el rastro de pintura
 paint_trail = []  # Lista de puntos del rastro [(x, y, z), ...]
 trail_width = 15.0  # Ancho del rastro
@@ -79,12 +91,54 @@ arm_angle = -15.0  # Ángulo inicial del brazo
 T_offset_y = 20.0
 T_offset_z = -10.0
 
+# Instancias adicionales de máquinas (4 en total, la 0 corresponde a la actual)
+NUM_MACHINES = 4
+machine_instances = [
+    {"x": 0.0,   "y": 0.0, "z": 0.0,    "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0},
+    {"x": 120.0, "y": 0.0, "z": 60.0,   "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0},
+    {"x": -120.0,"y": 0.0, "z": 60.0,   "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0},
+    {"x": 0.0,   "y": 0.0, "z": -140.0, "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0},
+]
+
 
 objetos = []
 
 #Variables para el control del observador
 theta = 0.0
 radius = 300
+
+# Helpers para actualizar instancias desde scripts externos (e.g., Julia)
+def set_squid_instance(index, x=None, y=None, z=None, rotation=None):
+    if index < 0 or index >= NUM_SQUIDS:
+        return
+    inst = squid_instances[index]
+    if x is not None:
+        inst["x"] = float(x)
+    if y is not None:
+        inst["y"] = float(y)
+    if z is not None:
+        inst["z"] = float(z)
+    if rotation is not None:
+        inst["rotation"] = float(rotation)
+
+def set_machine_instance(index, x=None, y=None, z=None, car_angle=None, wheel_angle=None, wheel_rotate=None, arm_angle=None):
+    if index < 0 or index >= NUM_MACHINES:
+        return
+    inst = machine_instances[index]
+    if x is not None:
+        inst["x"] = float(x)
+    if y is not None:
+        inst["y"] = float(y)
+    if z is not None:
+        inst["z"] = float(z)
+    if car_angle is not None:
+        inst["car_angle"] = float(car_angle)
+    if wheel_angle is not None:
+        inst["wheel_angle"] = float(wheel_angle)
+    if wheel_rotate is not None:
+        inst["wheel_rotate"] = float(wheel_rotate)
+    if arm_angle is not None:
+        inst["arm_angle"] = float(arm_angle)
 
 
 pygame.init()
@@ -445,6 +499,209 @@ def MaquinaBW():
     objetos[5].render()
     glPopMatrix()
 
+def DrawMachineInstance(inst):
+    # Dibuja una instancia completa de la máquina (base, brazo, ruedas) con sus propias coordenadas
+    x = inst.get("x", 0.0)
+    y = inst.get("y", 0.0)
+    z = inst.get("z", 0.0)
+    car_ang = inst.get("car_angle", 0.0)
+    wh_ang = inst.get("wheel_angle", 0.0)
+    wh_rot = inst.get("wheel_rotate", 0.0)
+    arm_ang = inst.get("arm_angle", -15.0)
+
+    # Base
+    glPushMatrix()
+    theta_rad = math.radians(car_ang)
+    cos_theta = math.cos(theta_rad)
+    sin_theta = math.sin(theta_rad)
+    m0 = cos_theta * Maquina_Scale
+    m2 = -sin_theta * Maquina_Scale
+    m5 = Maquina_Scale
+    m8 = sin_theta * Maquina_Scale
+    m10 = cos_theta * Maquina_Scale
+    m12 = x
+    m13 = y
+    m14 = z
+    maquina_matrix = [
+        m0, 0.0, m2, 0.0,
+        0.0, m5, 0.0, 0.0,
+        m8, 0.0, m10, 0.0,
+        m12, m13, m14, 1.0
+    ]
+    glMultMatrixf(maquina_matrix)
+    objetos[3].render()
+    glPopMatrix()
+
+    # Brazo
+    glPushMatrix()
+    Sc = Maquina_Scale
+    rad_car = math.radians(car_ang)
+    ct = math.cos(rad_car)
+    st = math.sin(rad_car)
+    rad_arm = math.radians(arm_ang)
+    ca = math.cos(rad_arm)
+    sa = math.sin(rad_arm)
+    m0 = ct * Sc
+    m2 = -st * Sc
+    m4 = st * sa * Sc
+    m5 = ca * Sc
+    m6 = ct * sa * Sc
+    m8 = st * ca * Sc
+    m9 = -sa * Sc
+    m10 = ct * ca * Sc
+    m12 = x + (T_offset_z * st)
+    m13 = y + T_offset_y
+    m14 = z + (T_offset_z * ct)
+    maquina_arm_matrix = [
+        m0, 0.0, m2, 0.0,
+        m4, m5, m6, 0.0,
+        m8, m9, m10, 0.0,
+        m12, m13, m14, 1.0
+    ]
+    glMultMatrixf(maquina_arm_matrix)
+    objetos[4].render()
+    glPopMatrix()
+
+    # Ruedas delanteras
+    glPushMatrix()
+    Sc = Maquina_Scale
+    rad_combo = math.radians(car_ang + wh_rot)
+    ct_r = math.cos(rad_combo)
+    st_r = math.sin(rad_combo)
+    rad_wheel_x = math.radians(wh_ang)
+    ca_w = math.cos(rad_wheel_x)
+    sa_w = math.sin(rad_wheel_x)
+    rad_car = math.radians(car_ang)
+    ct_c = math.cos(rad_car)
+    st_c = math.sin(rad_car)
+    m12 = x - (19.0 * st_c)
+    m13 = y + 10.0
+    m14 = z - (19.0 * ct_c)
+    m0 = ct_r * Sc
+    m2 = -st_r * Sc
+    m4 = st_r * sa_w * Sc
+    m5 = ca_w * Sc
+    m6 = ct_r * sa_w * Sc
+    m8 = st_r * ca_w * Sc
+    m9 = -sa_w * Sc
+    m10 = ct_r * ca_w * Sc
+    maquina_fw_matrix = [
+        m0, 0.0, m2, 0.0,
+        m4, m5, m6, 0.0,
+        m8, m9, m10, 0.0,
+        m12, m13, m14, 1.0
+    ]
+    glMultMatrixf(maquina_fw_matrix)
+    objetos[5].render()
+    glPopMatrix()
+
+    # Ruedas traseras
+    glPushMatrix()
+    Sc = Maquina_Scale
+    rad_car = math.radians(car_ang)
+    ct = math.cos(rad_car)
+    st = math.sin(rad_car)
+    rad_wheel = math.radians(wh_ang)
+    ca_w = math.cos(rad_wheel)
+    sa_w = math.sin(rad_wheel)
+    m12 = x + (21.0 * st)
+    m13 = y + 10.0
+    m14 = z + (21.0 * ct)
+    m0 = ct * Sc
+    m2 = -st * Sc
+    m4 = st * sa_w * Sc
+    m5 = ca_w * Sc
+    m6 = ct * sa_w * Sc
+    m8 = st * ca_w * Sc
+    m9 = -sa_w * Sc
+    m10 = ct * ca_w * Sc
+    maquina_bw_matrix = [
+        m0, 0.0, m2, 0.0,
+        m4, m5, m6, 0.0,
+        m8, m9, m10, 0.0,
+        m12, m13, m14, 1.0
+    ]
+    glMultMatrixf(maquina_bw_matrix)
+    objetos[5].render()
+    glPopMatrix()
+
+def DrawSquidInstance(inst):
+    # Dibuja una instancia de calamar completa (cara, brazo der, brazo izq) con sus propias coordenadas
+    # Usa la misma escala global pero rotación/posición independientes
+    x = inst.get("x", 0.0)
+    y = inst.get("y", 0.0)
+    z = inst.get("z", 0.0)
+    rot = inst.get("rotation", 0.0)
+
+    # Cara
+    glPushMatrix()
+    theta_rad = math.radians(rot)
+    cos_theta = math.cos(theta_rad)
+    sin_theta = math.sin(theta_rad)
+    m0 = cos_theta * Squid_Scale
+    m2 = -sin_theta * Squid_Scale
+    m5 = Squid_Scale
+    m8 = sin_theta * Squid_Scale
+    m10 = cos_theta * Squid_Scale
+    m12 = x
+    m13 = y
+    m14 = z
+    squid_matrix = [
+        m0, 0.0, m2, 0.0,
+        0.0, m5, 0.0, 0.0,
+        m8, 0.0, m10, 0.0,
+        m12, m13, m14, 1.0
+    ]
+    glMultMatrixf(squid_matrix)
+    objetos[0].render()
+    glPopMatrix()
+
+    # Brazo derecho (sin animación, usando leve offset angular)
+    glPushMatrix()
+    theta_rad = math.radians(rot - 5.0)
+    cos_theta = math.cos(theta_rad)
+    sin_theta = math.sin(theta_rad)
+    m0 = cos_theta * Squid_Scale
+    m2 = -sin_theta * Squid_Scale
+    m5 = Squid_Scale
+    m8 = sin_theta * Squid_Scale
+    m10 = cos_theta * Squid_Scale
+    m12 = x
+    m13 = y
+    m14 = z
+    squid_matrix = [
+        m0, 0.0, m2, 0.0,
+        0.0, m5, 0.0, 0.0,
+        m8, 0.0, m10, 0.0,
+        m12, m13, m14, 1.0
+    ]
+    glMultMatrixf(squid_matrix)
+    objetos[1].render()
+    glPopMatrix()
+
+    # Brazo izquierdo (sin animación, usando leve offset angular)
+    glPushMatrix()
+    theta_rad = math.radians(rot + 5.0)
+    cos_theta = math.cos(theta_rad)
+    sin_theta = math.sin(theta_rad)
+    m0 = cos_theta * Squid_Scale
+    m2 = -sin_theta * Squid_Scale
+    m5 = Squid_Scale
+    m8 = sin_theta * Squid_Scale
+    m10 = cos_theta * Squid_Scale
+    m12 = x
+    m13 = y
+    m14 = z
+    squid_matrix = [
+        m0, 0.0, m2, 0.0,
+        0.0, m5, 0.0, 0.0,
+        m8, 0.0, m10, 0.0,
+        m12, m13, m14, 1.0
+    ]
+    glMultMatrixf(squid_matrix)
+    objetos[2].render()
+    glPopMatrix()
+
 def DrawPaintTrail():
     """Dibuja el rastro de pintura del calamar en el suelo"""
     if len(paint_trail) < 2:
@@ -512,8 +769,6 @@ def UpdatePaintTrail():
         max_trail_points = 500
         if len(paint_trail) > max_trail_points:
             paint_trail.pop(0)  # Eliminar el punto más antiguo
-    
-# MUY IMPORTANTE CABRON -  aqui se maneja las peticiones a julia pero a segundo plano, la puedes modificar para que se reduzcan o aumenten las peticiones
 def fetch_data_background():
     global cached_data, last_update_time
     
@@ -532,14 +787,9 @@ def fetch_data_background():
             print(f"Error en background: {e}")
         
         time.sleep(0.05)  
-
 def display():
-    global Player_X, Player_Z, Maquina_X, Maquina_Z, cached_data
-
-    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     Axis()
-    
     #Dibujo del plano gris
     glColor3f(0.3, 0.3, 0.3)
     glBegin(GL_QUADS)
@@ -549,55 +799,68 @@ def display():
     glVertex3d(DimBoard, 0, -DimBoard)
     glEnd()
 
+    #Dibujo de evironment
+    #glPushMatrix()
+    #glScale(1.0,1.0,1.0) #Este Scale ya no es necesario
+    #objetos[6].render()
+    #glPopMatrix()
+
+    # Dibujar el rastro de pintura antes de los objetos para que quede debajo
     DrawPaintTrail()
-    # Aqui se hace la actualizacion de las posiciones del calamar y la maquina
     if cached_data is not None:
         with data_lock:
             data = cached_data
         
-            pacman = data['pacmans'][0] if data['pacmans'] else None
-            ghosts = data['ghosts'][0] if data['ghosts'] else None
-
-            if pacman:
+            # Cada pacman del array actualiza un calamar diferente
+            for i in range(min(3, len(data['pacmans']))):
+                pacman = data['pacmans'][i]  # pacmans[0] → squid_instances[1]
+                                            # pacmans[1] → squid_instances[2]
+                                            # pacmans[2] → squid_instances[3]
                 matrix_size = 40
                 board_size = DimBoard
-                Player_X = (pacman['pos'][0] / matrix_size) * board_size * 2 - board_size
-                Player_Z = (pacman['pos'][1] / matrix_size) * board_size * 2 - board_size
+                squid_instances[i+1]["x"] = (pacman['pos'][0] / matrix_size) * board_size * 2 - board_size
+                squid_instances[i+1]["z"] = (pacman['pos'][1] / matrix_size) * board_size * 2 - board_size
 
-            if ghosts:
+            # Cada ghost del array actualiza una máquina diferente
+            for i in range(min(3, len(data['ghosts']))):
+                ghost = data['ghosts'][i]  # ghosts[0] → machine_instances[1]
+                                        # ghosts[1] → machine_instances[2]
+                                        # ghosts[2] → machine_instances[3]
                 matrix_size = 40
                 board_size = DimBoard
-                Maquina_X = (ghosts['pos'][0] / matrix_size) * board_size * 2 - board_size
-                Maquina_Z = (ghosts['pos'][1] / matrix_size) * board_size * 2 - board_size
+                machine_instances[i+1]["x"] = (ghost['pos'][0] / matrix_size) * board_size * 2 - board_size
+                machine_instances[i+1]["z"] = (ghost['pos'][1] / matrix_size) * board_size * 2 - board_size
 
-    
-    #Calamar
+
+    #Calamar (jugador/controlado)
     SquidFace()
     SquidDer()
     SquidIzq()
-    
-    #Maquina
+    # Calamares adicionales (instancias 1..N)
+    for i in range(1, NUM_SQUIDS):
+        DrawSquidInstance(squid_instances[i])
+
+    #Maquina (controlada)
     Maquina()
     MaquinaArm()
     MaquinaFW()
     MaquinaBW()
+    # Máquinas adicionales (instancias 1..N)
+    for i in range(1, NUM_MACHINES):
+        DrawMachineInstance(machine_instances[i])
     
     
 done = False
 Init()
-
 # Actualizacion background
 update_thread = threading.Thread(target=fetch_data_background, daemon=True)
 update_thread.start()
-
-#Se jalan los datos iniciales: El Json basicamente, este esta en el wepapi de Julia
 try:
     res = requests.get("http://localhost:8000/run", timeout=2)
     cached_data = res.json()
 except Exception as e:
     print(f"Error inicial: {e}")
-
-# Inicializar el rastro
+# Inicializar el rastro con la posición inicial del calamar
 paint_trail.append((Player_X, Player_Y, Player_Z))
 last_trail_x = Player_X
 last_trail_z = Player_Z
@@ -737,6 +1000,20 @@ while not done:
     
     # Actualizar el rastro de pintura del calamar
     UpdatePaintTrail()
+    
+    # Sincroniza la instancia 0 con el calamar/máquina controlados por teclado
+    squid_instances[0]["x"] = Player_X
+    squid_instances[0]["y"] = Player_Y
+    squid_instances[0]["z"] = Player_Z
+    squid_instances[0]["rotation"] = Player_Rotation
+
+    machine_instances[0]["x"] = Maquina_X
+    machine_instances[0]["y"] = Maquina_Y
+    machine_instances[0]["z"] = Maquina_Z
+    machine_instances[0]["car_angle"] = car_angle
+    machine_instances[0]["wheel_angle"] = wheel_angle
+    machine_instances[0]["wheel_rotate"] = wheel_rotate
+    machine_instances[0]["arm_angle"] = arm_angle
     
     for event in pygame.event.get():
         if event.type == pygame.KEYDOWN:

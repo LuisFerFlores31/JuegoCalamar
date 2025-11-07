@@ -5,25 +5,40 @@ using UUIDs
 route("/run") do
     run!(model, 1)
 
-    pacmans = []
-    ghosts = []
+    # Convertir los agentes a diccionarios con solo la información necesaria
+    pacmans = [Dict(
+        "id" => p.id,
+        "pos" => p.pos,
+        "captured" => p.captured
+    ) for p in allagents(model) if p isa Pacman]
 
-    for agent in allagents(model)
-        if agent isa Pacman
-            push!(pacmans, agent)
-        elseif agent isa Ghost
-            push!(ghosts, agent)
-        end
-    end
+    ghosts = [Dict(
+        "id" => g.id,
+        "pos" => g.pos,
+        "color" => g.color,
+        "captured_pacman" => g.captured_pacman
+    ) for g in allagents(model) if g isa Ghost]
 
     visited = collect(model.visited_cells)
 
+    # DEBUG: Imprimir información de celdas
+    println("========== DEBUG ==========")
+    println("Celdas pintadas: $(model.painted_cells)")
+    println("Total de celdas: $(model.total_cells)")
+    println("Porcentaje pintado: $(round(model.painted_cells / model.total_cells * 100, digits=2))%")
+    println("Calamares ganaron: $(model.squids_won)")
+    println("Fantasmas ganaron: $(model.ghosts_won)")
+    println("===========================")
+
     json(Dict(
-        :msg => "Simulación en curso",
         "pacmans" => pacmans,
         "ghosts" => ghosts,
         "visited" => visited,
-        "matrix" => [collect(row) for row in eachrow(matrix)]
+        "matrix" => [collect(row) for row in eachrow(matrix)],
+        "squids_won" => model.squids_won,
+        "ghosts_won" => model.ghosts_won,
+        "painted_cells" => model.painted_cells,
+        "total_cells" => model.total_cells
     ))
 end
 

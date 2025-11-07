@@ -21,6 +21,15 @@ route("/run") do
 
     visited = collect(model.visited_cells)
 
+    # DEBUG: Imprimir información de celdas
+    println("========== DEBUG ==========")
+    println("Celdas pintadas: $(model.painted_cells)")
+    println("Total de celdas: $(model.total_cells)")
+    println("Porcentaje pintado: $(round(model.painted_cells / model.total_cells * 100, digits=2))%")
+    println("Calamares ganaron: $(model.squids_won)")
+    println("Fantasmas ganaron: $(model.ghosts_won)")
+    println("===========================")
+
     json(Dict(
         "pacmans" => pacmans,
         "ghosts" => ghosts,

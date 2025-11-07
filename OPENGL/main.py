@@ -5,11 +5,8 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
-#Librerias para la conexion
-import time
-import threading
+
 import math
-import requests
 
 # Se carga el archivo de la clase Cubo
 import sys
@@ -19,11 +16,6 @@ from objloader import *
 
 screen_width = 1200
 screen_height = 800
-#Manejo de peticiones de Julia
-last_update_time = 0
-update_interval = 0.1
-cached_data = None  
-data_lock = threading.Lock()
 #vc para el obser.
 FOVY=60.0
 ZNEAR=0.01
@@ -768,33 +760,9 @@ def UpdatePaintTrail():
         if len(paint_trail) > max_trail_points:
             paint_trail.pop(0)  # Eliminar el punto más antiguo
     
-# MUY IMPORTANTE CABRON -  aqui se maneja las peticiones a julia pero a segundo plano, la puedes modificar para que se reduzcan o aumenten las peticiones
-def fetch_data_background():
-    global cached_data, last_update_time
-    
-    while not done:
-        try:
-            current_time = time.time()
-            if current_time - last_update_time >= update_interval:
-                res = requests.get("http://localhost:8000/run", timeout=1)
-                data = res.json()
-                
-                # Guardar datos
-                with data_lock:
-                    cached_data = data
-                    last_update_time = current_time
-        except Exception as e:
-            print(f"Error en background: {e}")
-        
-        time.sleep(0.05)  
-
 def display():
-    global Player_X, Player_Z, Maquina_X, Maquina_Z, cached_data
-
-    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     Axis()
-    
     #Dibujo del plano gris
     glColor3f(0.3, 0.3, 0.3)
     glBegin(GL_QUADS)
@@ -804,6 +772,13 @@ def display():
     glVertex3d(DimBoard, 0, -DimBoard)
     glEnd()
 
+    #Dibujo de evironment
+    glPushMatrix()
+    #glScale(1.0,1.0,1.0) #Este Scale ya no es necesario
+    objetos[6].render()
+    glPopMatrix()
+
+    # Dibujar el rastro de pintura antes de los objetos para que quede debajo
     DrawPaintTrail()
 
     #Calamar (jugador/controlado)
@@ -826,19 +801,7 @@ def display():
     
 done = False
 Init()
-
-# Actualizacion background
-update_thread = threading.Thread(target=fetch_data_background, daemon=True)
-update_thread.start()
-
-#Se jalan los datos iniciales: El Json basicamente, este esta en el wepapi de Julia
-try:
-    res = requests.get("http://localhost:8000/run", timeout=2)
-    cached_data = res.json()
-except Exception as e:
-    print(f"Error inicial: {e}")
-
-# Inicializar el rastro
+# Inicializar el rastro con la posición inicial del calamar
 paint_trail.append((Player_X, Player_Y, Player_Z))
 last_trail_x = Player_X
 last_trail_z = Player_Z

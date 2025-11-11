@@ -51,8 +51,8 @@ Y_MAX=500
 Z_MIN=-500
 Z_MAX=500
 #Dimension del plano
-DimBoard = 200
-
+DimBoard = 300 #200
+ 
 #Variables del calamar
 Player_X = 0.0
 Player_Y = 0.0
@@ -1176,18 +1176,19 @@ def fetch_data_background():
         time.sleep(0.05)  
 def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    #Axis()
-    #Dibujo del plano gris
-    #glColor3f(0.3, 0.3, 0.3)
-    #glBegin(GL_QUADS)
-    #glVertex3d(-DimBoard, 0, -DimBoard)
-    #glVertex3d(-DimBoard, 0, DimBoard)
-    #glVertex3d(DimBoard, 0, DimBoard)
-    #glVertex3d(DimBoard, 0, -DimBoard)
-    #glEnd()
     
     if skybox:
         skybox.render(EYE_X, EYE_Y, EYE_Z)
+        
+    Axis()
+    #Dibujo del plano gris
+    glColor3f(0.3, 0.3, 0.3)
+    glBegin(GL_QUADS)
+    glVertex3d(-DimBoard, -2, -DimBoard)
+    glVertex3d(-DimBoard, -2, DimBoard)
+    glVertex3d(DimBoard, -2, DimBoard)
+    glVertex3d(DimBoard, -2, -DimBoard)
+    glEnd()
 
     #Dibujo de evironment
     glPushMatrix()

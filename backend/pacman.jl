@@ -28,7 +28,7 @@ end
     target_id::Union{Int,Nothing} = nothing
     captured_pacman::Bool = false
     patrol_direction::String = "right"
-    vision_range::Int = 5  # Campo de Vision
+    vision_range::Int = 5 #Campo de Vision
     chasing::Bool = false
 end
 #Division de cuadrantes
@@ -72,9 +72,9 @@ function pacman_step!(agent, model)
     for other in allagents(model)
         if other isa Ghost && other.chasing && !isnothing(other.target_id) && other.target_id == agent.id
             dist = distance(agent.pos, other.pos)
-            if dist <= 8  # Zona de escape amplia
+            if dist <= 8 #Zona de escape amplia
                 escaping = true
-                # Calcular dirección de la amenaza
+                #Calcular dirección de la amenaza
                 threat_direction = (other.pos[1] - agent.pos[1], other.pos[2] - agent.pos[2])
                 break
             end
@@ -107,7 +107,6 @@ function pacman_step!(agent, model)
     chosen_move = nothing
     # Escapar del fantasma
     if escaping && !isnothing(threat_direction)
-        
         best_move = nothing
         max_distance = -Inf
         # Tratar de escapar lo más lejos posible
@@ -133,10 +132,21 @@ function pacman_step!(agent, model)
     end
     
     if !isnothing(chosen_move)
-        push!(model.visited_cells, chosen_move)
+        # Solo agregar y contar si la celda NO ha sido visitada antes
+        if !(chosen_move in model.visited_cells)
+            push!(model.visited_cells, chosen_move)
+            model.painted_cells += 1
+            
+            # Verificar victoria cuando se pinta una nueva celda
+            if model.painted_cells >= model.total_cells
+                model.squids_won = true
+                println("¡Los calamares han ganado! Pintaron $(model.painted_cells) de $(model.total_cells) celdas")
+            end
+        end
         move_agent!(agent, chosen_move, model)
     end
 end
+
 #Esta funcion es unicamente del fantasma, que va a hacer un camino cuando no este persiguiendo a un pacman
 function patrol_zigzag!(agent, model)
     matrix_size = size(matrix)
@@ -208,12 +218,19 @@ function chase_pacman!(agent, target_pacman, model)
                 println("Fantasma $(agent.color) atrapó a Pacman $(target_pacman.id)")
                 agent.captured_pacman = true
                 target_pacman.captured = true
+                
+                # Verificar si todos los pacmans fueron capturados
+                all_captured = all(p.captured for p in allagents(model) if p isa Pacman)
+                if all_captured
+                    model.ghosts_won = true
+                    println("¡Los fantasmas han ganado! Capturaron a todos los calamares")
+                end
             end
             return
         end
     end
 end
-#
+
 function ghost_step!(agent, model)
     if agent.captured_pacman
         return
@@ -235,7 +252,6 @@ function ghost_step!(agent, model)
             
             if in_quadrant
                 dist = distance(agent.pos, other_agent.pos)
-                
                 # Si esta dentro del FOV campo de vision we y es el más cercano
                 if dist <= agent.vision_range && dist < min_distance
                     min_distance = dist
@@ -244,11 +260,10 @@ function ghost_step!(agent, model)
             end
         end
     end
-    
     # Si se detecto un Pacman, perseguirlo
     if !isnothing(closest_pacman)
         if !agent.chasing
-            println("Fantasma $(agent.color) detectó a Pacman $(closest_pacman.id) a una distancia de distancia $(min_distance)!")
+            println("Fantasma $(agent.color) detectó a Pacman $(closest_pacman.id) a distancia $(min_distance)!")
         end
         agent.chasing = true
         agent.target_id = closest_pacman.id
@@ -256,7 +271,7 @@ function ghost_step!(agent, model)
     else
         # No hay Pacmans en FOV o salió del cuadrante
         if agent.chasing
-            println("Fantasma $(agent.color) dejo de seguir a Pacman.")
+            println("Fantasma $(agent.color) dejó de seguir a Pacman.")
         end
         agent.chasing = false
         agent.target_id = nothing
@@ -279,7 +294,11 @@ function initialize_model()
     
     properties = Dict(
         :pathfinder => pathfinder,
-        :visited_cells => Set{Tuple{Int,Int}}()
+        :visited_cells => Set{Tuple{Int,Int}}(),
+        :total_cells => sum(matrix .== 1),
+        :painted_cells => 0,
+        :squids_won => false,
+        :ghosts_won => false
     )
     
     model = StandardABM(Union{Pacman, Ghost}, space;
@@ -290,7 +309,6 @@ function initialize_model()
     rows, cols = size(matrix)
     mid_row = div(rows + 1, 2)
     mid_col = div(cols + 1, 2)
-    
     
     # Pacmans
     pacman_positions = [(10, 10), (31, 10), (10, 31), (31, 31)]

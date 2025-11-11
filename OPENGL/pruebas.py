@@ -88,6 +88,7 @@ squid_instances = [
 ]
 
 # Variables para el rastro de pintura del calamar controlado por teclado (instancia 0)
+# Variables para el rastro de pintura del calamar controlado por teclado (instancia 0)
 paint_trail = []  # Lista de puntos del rastro [(x, y, z), ...]
 trail_width = 15.0  # Ancho del rastro
 last_trail_x = Player_X
@@ -225,6 +226,7 @@ def Init():
     objetos.append(OBJ("Player_Squid/faceSquid.obj" , swapyz=True)) #0
     objetos.append(OBJ("Player_Squid/DerSquid.obj" , swapyz=True)) #1
     objetos.append(OBJ("Player_Squid/IzqSquid.obj" , swapyz=True)) #2
+    #Maquina
     #Maquina
     objetos.append(OBJ("WheelLoader/BaseMaquina.obj" , swapyz=True)) #3
     objetos.append(OBJ("WheelLoader/GArmMaquina.obj" , swapyz=True)) #4
@@ -731,6 +733,7 @@ def DrawSquidInstance(inst):
 
 def DrawPaintTrail():
     """Dibuja el rastro de pintura del calamar controlado por teclado (instancia 0)"""
+    """Dibuja el rastro de pintura del calamar controlado por teclado (instancia 0)"""
     if len(paint_trail) < 2:
         return
     
@@ -1221,7 +1224,25 @@ def display():
 
     # Dibujar todos los rastros de pintura antes de los objetos para que queden debajo
     # Rastro del calamar controlado por teclado (instancia 0) - usa paint_trail original
+    # Dibujar todos los rastros de pintura antes de los objetos para que queden debajo
+    # Rastro del calamar controlado por teclado (instancia 0) - usa paint_trail original
     DrawPaintTrail()
+    
+    # Rastros de todos los calamares controlados por Julia (instancias 0, 1, 2, 3)
+    # Colores diferentes para cada calamar
+    squid_colors = [
+        (1.0, 0.2, 0.8),  # Rosa (instancia 0)
+        (0.2, 0.8, 1.0),  # Cyan (instancia 1)
+        (1.0, 0.8, 0.2),  # Amarillo (instancia 2)
+        (0.8, 0.2, 1.0),  # Púrpura (instancia 3)
+    ]
+    
+    # Dibujar rastros de todas las instancias (incluyendo 0 cuando es controlada por Julia)
+    # La instancia 0 también tiene su rastro independiente que se actualiza cuando es controlada por Julia
+    for i in range(NUM_SQUIDS):
+        if len(squid_instances[i]["paint_trail"]) > 0:
+            DrawSquidTrail(squid_instances[i]["paint_trail"], squid_colors[i])
+    
     
     # Rastros de todos los calamares controlados por Julia (instancias 0, 1, 2, 3)
     # Colores diferentes para cada calamar
@@ -1250,8 +1271,32 @@ def display():
                                             # pacmans[1] → squid_instances[1]
                                             # pacmans[2] → squid_instances[2]
                                             # pacmans[3] → squid_instances[3]
+            # Ahora controla las 4 instancias (0, 1, 2, 3) desde Julia
+            # Actualiza las coordenadas OBJETIVO (target) para movimiento suave
+            for i in range(min(4, len(data.get('pacmans', [])))):
+                pacman = data['pacmans'][i]  # pacmans[0] → squid_instances[0]
+                                            # pacmans[1] → squid_instances[1]
+                                            # pacmans[2] → squid_instances[2]
+                                            # pacmans[3] → squid_instances[3]
                 matrix_size = 40
                 board_size = DimBoard
+                # Actualizar coordenadas objetivo (no las coordenadas actuales directamente)
+                squid_instances[i]["target_x"] = (pacman['pos'][0] / matrix_size) * board_size * 2 - board_size
+                squid_instances[i]["target_z"] = (pacman['pos'][1] / matrix_size) * board_size * 2 - board_size
+                # Actualizar rotación si está disponible en los datos
+                if 'rotation' in pacman:
+                    squid_instances[i]["rotation"] = pacman['rotation']
+                elif 'dir' in pacman:
+                    # Calcular rotación desde dirección si está disponible
+                    dir_val = pacman['dir']
+                    if dir_val == 0:  # Arriba
+                        squid_instances[i]["rotation"] = 0.0
+                    elif dir_val == 1:  # Derecha
+                        squid_instances[i]["rotation"] = 90.0
+                    elif dir_val == 2:  # Abajo
+                        squid_instances[i]["rotation"] = 180.0
+                    elif dir_val == 3:  # Izquierda
+                        squid_instances[i]["rotation"] = 270.0
                 # Actualizar coordenadas objetivo (no las coordenadas actuales directamente)
                 squid_instances[i]["target_x"] = (pacman['pos'][0] / matrix_size) * board_size * 2 - board_size
                 squid_instances[i]["target_z"] = (pacman['pos'][1] / matrix_size) * board_size * 2 - board_size
@@ -1301,6 +1346,9 @@ def display():
     # Renderizar todas las máquinas usando DrawMachineInstance (incluyendo instancia 0)
     # Ahora todas las instancias (0-3) pueden ser controladas por Julia
     for i in range(NUM_MACHINES):
+    # Renderizar todas las máquinas usando DrawMachineInstance (incluyendo instancia 0)
+    # Ahora todas las instancias (0-3) pueden ser controladas por Julia
+    for i in range(NUM_MACHINES):
         DrawMachineInstance(machine_instances[i])
     
     
@@ -1315,9 +1363,18 @@ try:
 except Exception as e:
     print(f"Error inicial: {e}")
 # Inicializar el rastro con la posición inicial del calamar controlado por teclado
+# Inicializar el rastro con la posición inicial del calamar controlado por teclado
 paint_trail.append((Player_X, Player_Y, Player_Z))
 last_trail_x = Player_X
 last_trail_z = Player_Z
+
+# Inicializar los rastros de todas las instancias de calamares
+for i in range(NUM_SQUIDS):
+    inst = squid_instances[i]
+    inst["paint_trail"].append((inst["x"], inst["y"], inst["z"]))
+    inst["last_trail_x"] = inst["x"]
+    inst["last_trail_z"] = inst["z"]
+
 
 # Inicializar los rastros de todas las instancias de calamares
 for i in range(NUM_SQUIDS):

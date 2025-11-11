@@ -298,7 +298,8 @@ function initialize_model()
         :total_cells => sum(matrix .== 1),
         :painted_cells => 0,
         :squids_won => false,
-        :ghosts_won => false
+        :ghosts_won => false,
+        :running => false
     )
     
     model = StandardABM(Union{Pacman, Ghost}, space;
@@ -311,8 +312,8 @@ function initialize_model()
     mid_col = div(cols + 1, 2)
     
     # Pacmans
-    pacman_positions = [(10, 10), (31, 10), (10, 31), (31, 31)]
-    #pacman_positions = [(10, 10)]
+    #pacman_positions = [(10, 10), (31, 10), (10, 31), (31, 31)]
+    pacman_positions = [(10, 10)]
     for (i, pos) in enumerate(pacman_positions)
         p = add_agent!(pos, Pacman, model)
         p.quadrant = i

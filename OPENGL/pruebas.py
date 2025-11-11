@@ -67,17 +67,22 @@ Squid_R = 0.0
 NUM_SQUIDS = 4
 squid_instances = [
     {"x": 0.0,   "y": 0.0, "z": 0.0,   "rotation": 0.0, 
-     "target_x": 0.0, "target_z": 0.0,  # Coordenadas objetivo desde Julia
-     "paint_trail": [], "last_trail_x": 0.0, "last_trail_z": 0.0},  # Rastro independiente
+    "target_x": 0.0, "target_z": 0.0,  # Coordenadas objetivo desde Julia
+    "paint_trail": [], "last_trail_x": 0.0, "last_trail_z": 0.0,
+    # Animacion/estado interno (por instancia)
+    "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},  # Rastro independiente
     {"x": -80.0, "y": 0.0, "z": -80.0, "rotation": 0.0,
-     "target_x": -80.0, "target_z": -80.0,
-     "paint_trail": [], "last_trail_x": -80.0, "last_trail_z": -80.0},
+    "target_x": -80.0, "target_z": -80.0,
+    "paint_trail": [], "last_trail_x": -80.0, "last_trail_z": -80.0,
+    "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
     {"x": 80.0,  "y": 0.0, "z": -80.0, "rotation": 0.0,
-     "target_x": 80.0, "target_z": -80.0,
-     "paint_trail": [], "last_trail_x": 80.0, "last_trail_z": -80.0},
+    "target_x": 80.0, "target_z": -80.0,
+    "paint_trail": [], "last_trail_x": 80.0, "last_trail_z": -80.0,
+    "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
     {"x": 0.0,   "y": 0.0, "z": 120.0, "rotation": 0.0,
-     "target_x": 0.0, "target_z": 120.0,
-     "paint_trail": [], "last_trail_x": 0.0, "last_trail_z": 120.0},
+    "target_x": 0.0, "target_z": 120.0,
+    "paint_trail": [], "last_trail_x": 0.0, "last_trail_z": 120.0,
+    "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
 ]
 
 # Variables para el rastro de pintura del calamar controlado por teclado (instancia 0)
@@ -639,9 +644,13 @@ def DrawSquidInstance(inst):
     z = inst.get("z", 0.0)
     rot = inst.get("rotation", 0.0)
 
-    # Cara
+    # Animación: usar per-instance squid_R y squidT para face/arms
+    squidT = inst.get("squidT", 0.0)
+    squid_R_inst = inst.get("squid_R", 0.0)
+
+    # Cara (usa rotation + squid_R)
     glPushMatrix()
-    theta_rad = math.radians(rot)
+    theta_rad = math.radians(rot + squid_R_inst)
     cos_theta = math.cos(theta_rad)
     sin_theta = math.sin(theta_rad)
     m0 = cos_theta * Squid_Scale
@@ -662,9 +671,9 @@ def DrawSquidInstance(inst):
     objetos[0].render()
     glPopMatrix()
 
-    # Brazo derecho (sin animación, usando leve offset angular)
+    # Brazo derecho (animado con -squidT)
     glPushMatrix()
-    theta_rad = math.radians(rot - 5.0)
+    theta_rad = math.radians(rot - squidT)
     cos_theta = math.cos(theta_rad)
     sin_theta = math.sin(theta_rad)
     m0 = cos_theta * Squid_Scale
@@ -685,9 +694,9 @@ def DrawSquidInstance(inst):
     objetos[1].render()
     glPopMatrix()
 
-    # Brazo izquierdo (sin animación, usando leve offset angular)
+    # Brazo izquierdo (animado con +squidT)
     glPushMatrix()
-    theta_rad = math.radians(rot + 5.0)
+    theta_rad = math.radians(rot + squidT)
     cos_theta = math.cos(theta_rad)
     sin_theta = math.sin(theta_rad)
     m0 = cos_theta * Squid_Scale
@@ -814,32 +823,118 @@ def UpdateSquidSmoothMovement():
         current_z = inst["z"]
         target_x = inst["target_x"]
         target_z = inst["target_z"]
-        
+
         # Calcular distancia al objetivo
         dx = target_x - current_x
         dz = target_z - current_z
         distance = math.sqrt(dx * dx + dz * dz)
-        
+
+        prev_x = current_x
+        prev_z = current_z
+        prev_rot = inst.get("rotation", 0.0)
+
         # Si está cerca del objetivo, mover directamente
         if distance <= squid_move_speed:
             inst["x"] = target_x
             inst["z"] = target_z
         else:
             # Mover hacia el objetivo con velocidad constante
-            # Normalizar dirección y multiplicar por velocidad
             dir_x = dx / distance
             dir_z = dz / distance
             inst["x"] += dir_x * squid_move_speed
             inst["z"] += dir_z * squid_move_speed
-            
+
             # Actualizar rotación para que el calamar mire hacia la dirección de movimiento
-            # Calcular ángulo en grados (0 = norte, 90 = este, 180 = sur, 270 = oeste)
             angle_rad = math.atan2(-dir_x, -dir_z)  # Negativo porque en OpenGL Z positivo es hacia atrás
             angle_deg = math.degrees(angle_rad)
-            # Normalizar a 0-360
             if angle_deg < 0:
                 angle_deg += 360
             inst["rotation"] = angle_deg
+
+        # --- Animacion por instancia (simula hold de teclas) ---
+        moved_x = inst["x"] - prev_x
+        moved_z = inst["z"] - prev_z
+        move_dist = math.hypot(moved_x, moved_z)
+
+        # Direccion local del squid (forward vector)
+        rad_rot = math.radians(inst.get("rotation", 0.0))
+        fdx = math.sin(rad_rot)
+        fdz = math.cos(rad_rot)
+
+        # Componente forward/backward: producto punto
+        forward_comp = moved_x * fdx + moved_z * fdz
+
+        # Referencias a variables de animacion por instancia
+        squidT = inst.get("squidT", 0.0)
+        squidSw = inst.get("squidSw", 0)
+        squidSwBack = inst.get("squidSwBack", 0)
+        squid_R = inst.get("squid_R", 0.0)
+
+        # Movimiento hacia adelante (nota: en tu control original forward producia delta negativo
+        # al comparar con dir; aqui usamos forward_comp: si es negativo significa que la posicion
+        # cambió en sentido -fd (recordar signos), pero para seguridad empleamos umbrales)
+        if move_dist > 0.001 and forward_comp < 0:
+            squidSwBack = 0
+            if squid_R > 0:
+                squid_R -= 2.5
+            if squid_R < 0:
+                squid_R += 2.5
+            if squidSw == 0:
+                squidT += 4.0
+                if squidT >= 45:
+                    squidSw = 1
+            else:
+                squidT -= 6.0
+                if squidT <= -10:
+                    squidSw = 0
+
+        # Movimiento hacia atras
+        elif move_dist > 0.001 and forward_comp > 0:
+            squidSw = 0
+            if squid_R < 0:
+                squid_R += 4.0
+            if squidSwBack == 0:
+                squidT -= 6.0
+                if squidT <= -10:
+                    squidSwBack = 1
+            else:
+                squidT += 4.0
+                if squidT >= 45:
+                    squidSwBack = 0
+
+        else:
+            # Si no se movió, intentar devolver squidT y squid_R hacia 0 lentamente
+            if squidT > 0.5:
+                squidT -= 1.0
+            elif squidT < -0.5:
+                squidT += 1.0
+            else:
+                squidT = 0.0
+            # recuperar squid_R lentamente
+            if squid_R > 0.5:
+                squid_R -= 1.0
+            elif squid_R < -0.5:
+                squid_R += 1.0
+            else:
+                squid_R = 0.0
+
+        # Ajuste por rotacion (simula presionar A/D)
+        rot_delta = ((inst.get("rotation", 0.0) - prev_rot + 540) % 360) - 180
+        if abs(rot_delta) > 0.1:
+            if rot_delta > 0:
+                # rotacion aumentó -> similar a 'a' en tu control original
+                if squid_R < 25:
+                    squid_R += 2.0
+            else:
+                # rotacion disminuyó -> similar a 'd'
+                if squid_R > -25:
+                    squid_R -= 2.0
+
+        # Guardar valores actualizados
+        inst["squidT"] = squidT
+        inst["squidSw"] = squidSw
+        inst["squidSwBack"] = squidSwBack
+        inst["squid_R"] = squid_R
 
 def UpdateSquidTrails():
     """Actualiza los rastros de pintura de todos los calamares"""
@@ -863,7 +958,7 @@ def UpdateSquidTrails():
             inst["last_trail_z"] = current_z
             
             # Limitar el tamaño del rastro para evitar problemas de rendimiento
-            max_trail_points = 500
+            max_trail_points = 1500
             if len(trail) > max_trail_points:
                 trail.pop(0)  # Eliminar el punto más antiguo
 
@@ -1067,63 +1162,8 @@ while not done:
             radius += 1.0
         lookat()
 
-    #Controles para prueba de calamar
-    # Calcular dirección de movimiento basada en la rotación del calamar
-    dir_x = math.sin(math.radians(Player_Rotation))
-    dir_z = math.cos(math.radians(Player_Rotation))
-    
-    if keys[pygame.K_w]:
-        SquidSwBack = 0  #Reset animacion S
-        if Squid_R > 0:
-            Squid_R -= 2.5  # Doble velocidad de recuperación de rotación
-        if Squid_R < 0:
-            Squid_R += 2.5
-        if SquidSw == 0:  #Adelante
-            SquidT += 4.0  # Animacion más rápida
-            if SquidT >= 45:
-                SquidSw = 1  #Atras
-        else:
-            SquidT -= 6.0  # Animacion más rápida
-            # Movimiento hacia adelante
-            Player_X -= dir_x * 1.5  # Más rápido
-            Player_Z -= dir_z * 1.5
-            
-            if SquidT <= -10:
-                SquidSw = 0  #reset adelante
-
-    if keys[pygame.K_s]:
-        SquidSw = 0  #Reset animacion W 
-        if Squid_R < 0:
-            Squid_R += 4.0  # Doble velocidad de recuperación de rotación
-        if SquidSwBack == 0:  #Atras
-            SquidT -= 6.0  # Animacion más rápida
-            if SquidT <= -10:
-                SquidSwBack = 1 #adelante
-        else:
-            SquidT += 4.0  # Animacion más rápida
-            # Movimiento hacia atrás
-            Player_X += dir_x * 1.0  # Más rápido que antes
-            Player_Z += dir_z * 1.0
-            
-            if SquidT >= 45:
-                SquidSwBack = 0 #reset atras
-                
-    if keys[pygame.K_d]:
-        if Squid_R > -25:
-            Squid_R -= 2.0
-            
-        # Rotar el calamar a la izquierda
-        Player_Rotation -= 2.0
-        if Player_Rotation < 0:
-            Player_Rotation += 360
-
-    if keys[pygame.K_a]:
-        if Squid_R < 25:
-            Squid_R += 2.0
-        # Rotar el calamar a la derecha
-        Player_Rotation += 2.0
-        if Player_Rotation >= 360:
-            Player_Rotation -= 360   
+    # Calamares: control por Julia (targets). Animación por instancia se gestiona
+    # desde UpdateSquidSmoothMovement, por lo que no se usan controles W/A/S/D manuales.
             
              
     #Control de la maquina Wheel Loader
@@ -1208,6 +1248,8 @@ while not done:
         machine_instances[0]["arm_angle"] = arm_angle
     # Si no se presionan teclas, la instancia 0 será controlada por Julia (si hay datos)
     # La actualización desde Julia ya se hizo en la función display() arriba
+    # No se hace nada aquí: Julia actualiza los targets en display(), y UpdateSquidSmoothMovement
+    # aplica movimiento + animación por instancia.
     
     # Actualizar movimiento suave de todos los calamares hacia sus coordenadas objetivo
     UpdateSquidSmoothMovement()

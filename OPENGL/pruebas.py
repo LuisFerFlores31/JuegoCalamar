@@ -1017,155 +1017,27 @@ def UpdateSquidTrails():
                 trail.pop(0)  # Eliminar el punto más antiguo
 
 def UpdateMachineSmoothMovement():
-    """Actualiza el movimiento suave de todas las máquinas hacia sus coordenadas objetivo"""
-    global machine_move_speed, machine_car_rotation_speed, machine_wheel_rotation_speed
-    
+    """Stub: animación de máquinas deshabilitada.
+
+    Este reemplazo copia las coordenadas objetivo (`target_x`, `target_z`) a las
+    posiciones actuales (`x`, `z`) sin interpolación ni cálculos de rotación.
+    Mantiene los ángulos que provengan del backend (Julia) si existen, pero no
+    realiza ajustes automáticos visuales (wheel/arm/car rotations).
+    """
     for i in range(NUM_MACHINES):
         inst = machine_instances[i]
-        current_x = inst["x"]
-        current_z = inst["z"]
-        target_x = inst["target_x"]
-        target_z = inst["target_z"]
-        
-        # Calcular distancia al objetivo
-        dx = target_x - current_x
-        dz = target_z - current_z
-        distance = math.sqrt(dx * dx + dz * dz)
-        
-        # Obtener valores actuales
-        car_ang = inst.get("car_angle", 0.0)
-        wheel_rot = inst.get("wheel_rotate", 0.0)
-        wheel_ang = inst.get("wheel_angle", 0.0)
-        is_moving_forward = inst.get("is_moving_forward", False)
-        is_moving_backward = inst.get("is_moving_backward", False)
-        
-        # Determinar si debe moverse hacia adelante o atrás
-        if distance > 0.001:
-            # Calcular dirección hacia el objetivo
-            dir_x = dx / distance
-            dir_z = dz / distance
-            
-            # Calcular ángulo objetivo hacia el target
-            target_angle_rad = math.atan2(-dir_x, -dir_z)  # Negativo porque en OpenGL Z positivo es hacia atrás
-            target_angle = math.degrees(target_angle_rad)
-            if target_angle < 0:
-                target_angle += 360
-            
-            # Calcular diferencia de ángulo (manejar wrap-around 0-360)
-            angle_diff = ((target_angle - car_ang + 180) % 360) - 180
-            
-            # Solo calcular wheel_rotate automáticamente si no viene desde Julia
-            # (Si Julia proporciona wheel_rotate, se actualiza en display() y tiene prioridad)
-            # Para detectar si viene de Julia, verificamos si wheel_rotate está cerca de 0
-            # o si hay una diferencia grande de ángulo que requiere ajuste
-            # Nota: Si Julia actualiza wheel_rotate, lo usará; si no, lo calculamos aquí
-            auto_calculate_wheel = True  # Por defecto, calcular automáticamente
-            
-            if auto_calculate_wheel:
-                # Si hay una diferencia significativa, ajustar wheel_rotate gradualmente para girar hacia el objetivo
-                # Esto simula presionar J/L para girar
-                if abs(angle_diff) > 2.0:  # Si hay diferencia significativa
-                    # Calcular wheel_rotate objetivo (limitado a ±15 grados como en los controles originales)
-                    target_wheel_rot = max(-17.0, min(17.0, angle_diff * 0.3))  # Factor para suavizar el giro
-                    
-                    # Interpolar wheel_rotate gradualmente hacia el objetivo
-                    if abs(target_wheel_rot - wheel_rot) > 0.5:
-                        if target_wheel_rot > wheel_rot:
-                            wheel_rot = min(target_wheel_rot, wheel_rot + 2.0)  # Incrementar gradualmente
-                        else:
-                            wheel_rot = max(target_wheel_rot, wheel_rot - 1.0)  # Decrementar gradualmente
-                    else:
-                        wheel_rot = target_wheel_rot
-                else:
-                    # Ya está orientado correctamente, devolver wheel_rotate a 0 gradualmente
-                    if abs(wheel_rot) > 0.5:
-                        if wheel_rot > 0:
-                            wheel_rot = max(0, wheel_rot - 1.0)
-                        else:
-                            wheel_rot = min(0, wheel_rot + 1.0)
-                    else:
-                        wheel_rot = 0.0
-            
-            # Calcular heading actual (dirección de movimiento basada en car_angle + wheel_rotate)
-            heading = car_ang + wheel_rot
-            rad_h = math.radians(heading)
-            current_dir_x = math.sin(rad_h)
-            current_dir_z = math.cos(rad_h)
-            
-            # Determinar si debe avanzar o retroceder comparando direcciones
-            # Producto punto para ver si van en la misma dirección
-            dot_product = dir_x * current_dir_x + dir_z * current_dir_z
-            
-            if dot_product > 0:
-                # Misma dirección: avanzar
-                is_moving_forward = True
-                is_moving_backward = False
-                
-                # Mover hacia el objetivo
-                if distance <= machine_move_speed:
-                    inst["x"] = target_x
-                    inst["z"] = target_z
-                else:
-                    inst["x"] += current_dir_x * machine_move_speed
-                    inst["z"] += current_dir_z * machine_move_speed
-                
-                # Girar lentamente el cuerpo del carro hacia la dirección de las ruedas
-                if abs(wheel_rot) > 0.1:
-                    car_ang -= wheel_rot * machine_car_rotation_speed
-                    # Normalizar car_angle a rango 0-360
-                    if car_ang >= 360:
-                        car_ang -= 360
-                    elif car_ang < 0:
-                        car_ang += 360
-                
-                # Rotación visual de las ruedas
-                wheel_ang += machine_wheel_rotation_speed
-                if wheel_ang >= 360.0:
-                    wheel_ang -= 360.0
-                elif wheel_ang < 0:
-                    wheel_ang += 360.0
-                    
-            else:
-                # Dirección opuesta: retroceder
-                is_moving_forward = False
-                is_moving_backward = True
-                
-                # Mover hacia atrás
-                if distance <= machine_move_speed:
-                    inst["x"] = target_x
-                    inst["z"] = target_z
-                else:
-                    inst["x"] -= current_dir_x * machine_move_speed
-                    inst["z"] -= current_dir_z * machine_move_speed
-                
-                # Al ir en reversa, el carro gira en sentido contrario respecto al giro de las ruedas
-                if abs(wheel_rot) > 0.1:
-                    car_ang += wheel_rot * machine_car_rotation_speed
-                    # Normalizar car_angle a rango 0-360
-                    if car_ang >= 360:
-                        car_ang -= 360
-                    elif car_ang < 0:
-                        car_ang += 360
-                
-                # Rotación visual de las ruedas (en reversa)
-                wheel_ang -= machine_wheel_rotation_speed
-                if wheel_ang <= -360.0:
-                    wheel_ang += 360.0
-                elif wheel_ang >= 360.0:
-                    wheel_ang -= 360.0
-        else:
-            # Ya llegó al objetivo: detener movimiento
-            inst["x"] = target_x
-            inst["z"] = target_z
-            is_moving_forward = False
-            is_moving_backward = False
-        
-        # Guardar valores actualizados
-        inst["car_angle"] = car_ang
-        inst["wheel_angle"] = wheel_ang
-        inst["wheel_rotate"] = wheel_rot
-        inst["is_moving_forward"] = is_moving_forward
-        inst["is_moving_backward"] = is_moving_backward
+        # Copiar directamente la posición objetivo (sin suavizado)
+        inst["x"] = inst.get("target_x", inst.get("x", 0.0))
+        inst["z"] = inst.get("target_z", inst.get("z", 0.0))
+
+        # No realizar animaciones ni cambios automáticos en los ángulos.
+        # Simplemente conservar lo que venga del backend (o el valor actual).
+        inst["car_angle"] = inst.get("car_angle", 0.0)
+        inst["wheel_angle"] = inst.get("wheel_angle", 0.0)
+        inst["wheel_rotate"] = inst.get("wheel_rotate", 0.0)
+        inst["arm_angle"] = inst.get("arm_angle", inst.get("arm_angle", -15.0))
+        inst["is_moving_forward"] = False
+        inst["is_moving_backward"] = False
 
 def UpdatePaintTrail():
     """Actualiza el rastro de pintura agregando un nuevo punto si el calamar se ha movido suficiente"""
@@ -1408,8 +1280,7 @@ while not done:
 
     # Calamares: control por Julia (targets). Animación por instancia se gestiona
     # desde UpdateSquidSmoothMovement, por lo que no se usan controles W/A/S/D manuales.
-            
-             
+    
     #Control de la maquina Wheel Loader
     heading = car_angle + wheel_rotate
     rad_h = math.radians(heading)

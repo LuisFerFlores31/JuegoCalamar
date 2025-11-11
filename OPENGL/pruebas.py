@@ -18,6 +18,8 @@ import sys
 sys.path.append('..')
 # Import obj loader
 from objloader import *
+from skybox import *
+
 
 screen_width = 1200
 screen_height = 800
@@ -134,6 +136,8 @@ objetos = []
 #Variables para el control del observador
 theta = 0.0
 radius = 300
+skybox = None
+
 
 # Helpers para actualizar instancias desde scripts externos (e.g., Julia)
 def set_squid_instance(index, x=None, y=None, z=None, rotation=None):
@@ -235,6 +239,11 @@ def Init():
 
     for i in range(len(objetos)): 
         objetos[i].generate()
+        
+    # Inicializar skybox
+    global skybox
+    skybox_path = "sky_10_2k/sky_10_cubemap_2k/sky_10_cubemap_2k"
+    skybox = Skybox(skybox_path)
 
 #Se mueve al observador circularmente al rededor del plano XZ a una altura fija (EYE_Y)
 def lookat():
@@ -1167,15 +1176,18 @@ def fetch_data_background():
         time.sleep(0.05)  
 def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    Axis()
+    #Axis()
     #Dibujo del plano gris
-    glColor3f(0.3, 0.3, 0.3)
-    glBegin(GL_QUADS)
-    glVertex3d(-DimBoard, 0, -DimBoard)
-    glVertex3d(-DimBoard, 0, DimBoard)
-    glVertex3d(DimBoard, 0, DimBoard)
-    glVertex3d(DimBoard, 0, -DimBoard)
-    glEnd()
+    #glColor3f(0.3, 0.3, 0.3)
+    #glBegin(GL_QUADS)
+    #glVertex3d(-DimBoard, 0, -DimBoard)
+    #glVertex3d(-DimBoard, 0, DimBoard)
+    #glVertex3d(DimBoard, 0, DimBoard)
+    #glVertex3d(DimBoard, 0, -DimBoard)
+    #glEnd()
+    
+    if skybox:
+        skybox.render(EYE_X, EYE_Y, EYE_Z)
 
     #Dibujo de evironment
     glPushMatrix()

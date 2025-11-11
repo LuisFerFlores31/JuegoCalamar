@@ -108,7 +108,7 @@ machine_wheel_rotation_speed = 10.0  # Velocidad de rotación visual de las rued
 Maquina_X = 0.0
 Maquina_Y = 0.0
 Maquina_Z = 0.0
-Maquina_Scale = 10.0
+Maquina_Scale = 8.0
 car_angle = 0.0
 wheel_angle = 0.0
 wheel_rotate = 0.0
@@ -119,14 +119,14 @@ T_offset_z = -10.0
 # Instancias adicionales de máquinas (4 en total, la 0 corresponde a la actual)
 NUM_MACHINES = 4
 machine_instances = [
-    {"x": 0.0,   "y": 0.0, "z": 0.0,    "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0,
-     "target_x": 0.0, "target_z": 0.0, "is_moving_forward": False, "is_moving_backward": False},
-    {"x": 120.0, "y": 0.0, "z": 60.0,   "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0,
-     "target_x": 120.0, "target_z": 60.0, "is_moving_forward": False, "is_moving_backward": False},
-    {"x": -120.0,"y": 0.0, "z": 60.0,   "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0,
-     "target_x": -120.0, "target_z": 60.0, "is_moving_forward": False, "is_moving_backward": False},
-    {"x": 0.0,   "y": 0.0, "z": -140.0, "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0,
-     "target_x": 0.0, "target_z": -140.0, "is_moving_forward": False, "is_moving_backward": False},
+    {"x": -180.0,   "y": 0.0, "z": -180.0,    "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0,
+     "target_x": -180.0, "target_z": -180.0, "is_moving_forward": False, "is_moving_backward": False},
+    {"x": 200.0, "y": 0.0, "z": -180.0,   "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0,
+     "target_x": 200.0, "target_z": -180.0, "is_moving_forward": False, "is_moving_backward": False},
+    {"x": -180.0,"y": 0.0, "z": 200.0,   "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0,
+     "target_x": -180.0, "target_z": 200.0, "is_moving_forward": False, "is_moving_backward": False},
+    {"x": 200.0,   "y": 0.0, "z": 200.0, "car_angle": 0.0, "wheel_angle": 0.0, "wheel_rotate": 0.0, "arm_angle": -15.0,
+     "target_x": 200.0, "target_z": 200.0, "is_moving_forward": False, "is_moving_backward": False},
 ]
 
 
@@ -1017,13 +1017,7 @@ def UpdateSquidTrails():
                 trail.pop(0)  # Eliminar el punto más antiguo
 
 def UpdateMachineSmoothMovement():
-    """Stub: animación de máquinas deshabilitada.
 
-    Este reemplazo copia las coordenadas objetivo (`target_x`, `target_z`) a las
-    posiciones actuales (`x`, `z`) sin interpolación ni cálculos de rotación.
-    Mantiene los ángulos que provengan del backend (Julia) si existen, pero no
-    realiza ajustes automáticos visuales (wheel/arm/car rotations).
-    """
     for i in range(NUM_MACHINES):
         inst = machine_instances[i]
         # Copiar directamente la posición objetivo (sin suavizado)
@@ -1089,10 +1083,10 @@ def display():
     glEnd()
 
     #Dibujo de evironment
-    #glPushMatrix()
-    #glScale(1.0,1.0,1.0) #Este Scale ya no es necesario
-    #objetos[6].render()
-    #glPopMatrix()
+    glPushMatrix()
+    glScale(1.2,1.2,1.2) #Este Scale ya no es necesario
+    objetos[6].render()
+    glPopMatrix()
 
     # Dibujar todos los rastros de pintura antes de los objetos para que queden debajo
     # Rastro del calamar controlado por teclado (instancia 0) - usa paint_trail original
@@ -1353,10 +1347,6 @@ while not done:
         machine_instances[0]["wheel_angle"] = wheel_angle
         machine_instances[0]["wheel_rotate"] = wheel_rotate
         machine_instances[0]["arm_angle"] = arm_angle
-    # Si no se presionan teclas, la instancia 0 será controlada por Julia (si hay datos)
-    # La actualización desde Julia ya se hizo en la función display() arriba
-    # No se hace nada aquí: Julia actualiza los targets en display(), y UpdateSquidSmoothMovement
-    # aplica movimiento + animación por instancia.
     
     # Actualizar movimiento suave de todos los calamares hacia sus coordenadas objetivo
     UpdateSquidSmoothMovement()

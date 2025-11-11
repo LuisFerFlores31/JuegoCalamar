@@ -312,6 +312,7 @@ function initialize_model()
     
     # Pacmans
     pacman_positions = [(10, 10), (31, 10), (10, 31), (31, 31)]
+    #pacman_positions = [(10, 10)]
     for (i, pos) in enumerate(pacman_positions)
         p = add_agent!(pos, Pacman, model)
         p.quadrant = i
@@ -319,6 +320,7 @@ function initialize_model()
     
     # Fantasmas
     ghost_positions = [(2, 2), (40, 2), (2, 40), (40, 40)]
+    #ghost_positions = [(2,2)]
     ghost_colors = ["red", "orange", "pink", "cyan"]
     
     for (i, pos) in enumerate(ghost_positions)

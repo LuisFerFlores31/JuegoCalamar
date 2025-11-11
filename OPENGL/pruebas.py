@@ -65,23 +65,25 @@ Squid_R = 0.0
 # Instancias adicionales de calamares (4 en total, la 0 corresponde al jugador actual)
 # Cada instancia tiene coordenadas y rotación independientes
 NUM_SQUIDS = 4
+# pacman_positions = [(10, 10), (31, 10), (10, 31), (31, 31)]
+# Multiplicadas por 10 para OpenGL
 squid_instances = [
-    {"x": 0.0,   "y": 0.0, "z": 0.0,   "rotation": 0.0, 
-    "target_x": 0.0, "target_z": 0.0,  # Coordenadas objetivo desde Julia
-    "paint_trail": [], "last_trail_x": 0.0, "last_trail_z": 0.0,
+    {"x": 100.0,   "y": 0.0, "z": 100.0,   "rotation": 0.0, 
+    "target_x": 100.0, "target_z": 100.0,  # Coordenadas objetivo desde Julia
+    "paint_trail": [], "last_trail_x": 100.0, "last_trail_z": 100.0,
     # Animacion/estado interno (por instancia)
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},  # Rastro independiente
-    {"x": -80.0, "y": 0.0, "z": -80.0, "rotation": 0.0,
-    "target_x": -80.0, "target_z": -80.0,
-    "paint_trail": [], "last_trail_x": -80.0, "last_trail_z": -80.0,
+    {"x": 310.0, "y": 0.0, "z": 100.0, "rotation": 0.0,
+    "target_x": 310.0, "target_z": 100.0,
+    "paint_trail": [], "last_trail_x": 310.0, "last_trail_z": 100.0,
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
-    {"x": 80.0,  "y": 0.0, "z": -80.0, "rotation": 0.0,
-    "target_x": 80.0, "target_z": -80.0,
-    "paint_trail": [], "last_trail_x": 80.0, "last_trail_z": -80.0,
+    {"x": 100.0,  "y": 0.0, "z": 310.0, "rotation": 0.0,
+    "target_x": 100.0, "target_z": 310.0,
+    "paint_trail": [], "last_trail_x": 100.0, "last_trail_z": 310.0,
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
-    {"x": 0.0,   "y": 0.0, "z": 120.0, "rotation": 0.0,
-    "target_x": 0.0, "target_z": 120.0,
-    "paint_trail": [], "last_trail_x": 0.0, "last_trail_z": 120.0,
+    {"x": 310.0,   "y": 0.0, "z": 310.0, "rotation": 0.0,
+    "target_x": 310.0, "target_z": 310.0,
+    "paint_trail": [], "last_trail_x": 310.0, "last_trail_z": 310.0,
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
 ]
 
@@ -94,6 +96,7 @@ min_trail_distance = 2.0  # Distancia mínima para agregar un nuevo punto al ras
 
 # Velocidad de movimiento suave hacia las coordenadas objetivo
 squid_move_speed = 2.0  # Velocidad de interpolación (unidades por frame)
+squid_rotation_speed = 5.0  # Velocidad de rotación (grados por frame)
 
 #variables de la maquina Wheel Loader
 Maquina_X = 0.0
@@ -833,6 +836,42 @@ def UpdateSquidSmoothMovement():
         prev_z = current_z
         prev_rot = inst.get("rotation", 0.0)
 
+        # Calcular rotación objetivo hacia la dirección de movimiento
+        current_rot = inst.get("rotation", 0.0)
+        target_rot = current_rot  # Por defecto, mantener rotación actual
+        
+        if distance > 0.001:  # Solo calcular si hay movimiento
+            # Calcular ángulo objetivo hacia la dirección de movimiento
+            dir_x = dx / distance
+            dir_z = dz / distance
+            angle_rad = math.atan2(-dir_x, -dir_z)  # Negativo porque en OpenGL Z positivo es hacia atrás
+            target_rot = math.degrees(angle_rad)
+            if target_rot < 0:
+                target_rot += 360
+            
+            # Calcular la diferencia de ángulo (manejar wrap-around 0-360)
+            rot_diff = ((target_rot - current_rot + 180) % 360) - 180
+            
+            # Rotar gradualmente hacia el objetivo
+            if abs(rot_diff) > 0.1:  # Si hay diferencia significativa
+                if rot_diff > 0:
+                    # Rotar en sentido horario (derecha)
+                    new_rot = current_rot + min(squid_rotation_speed, rot_diff)
+                else:
+                    # Rotar en sentido antihorario (izquierda)
+                    new_rot = current_rot + max(-squid_rotation_speed, rot_diff)
+                
+                # Normalizar a rango 0-360
+                if new_rot >= 360:
+                    new_rot -= 360
+                elif new_rot < 0:
+                    new_rot += 360
+                
+                inst["rotation"] = new_rot
+            else:
+                # Ya está orientado correctamente
+                inst["rotation"] = target_rot
+        
         # Si está cerca del objetivo, mover directamente
         if distance <= squid_move_speed:
             inst["x"] = target_x
@@ -843,13 +882,6 @@ def UpdateSquidSmoothMovement():
             dir_z = dz / distance
             inst["x"] += dir_x * squid_move_speed
             inst["z"] += dir_z * squid_move_speed
-
-            # Actualizar rotación para que el calamar mire hacia la dirección de movimiento
-            angle_rad = math.atan2(-dir_x, -dir_z)  # Negativo porque en OpenGL Z positivo es hacia atrás
-            angle_deg = math.degrees(angle_rad)
-            if angle_deg < 0:
-                angle_deg += 360
-            inst["rotation"] = angle_deg
 
         # --- Animacion por instancia (simula hold de teclas) ---
         moved_x = inst["x"] - prev_x
@@ -870,15 +902,33 @@ def UpdateSquidSmoothMovement():
         squidSwBack = inst.get("squidSwBack", 0)
         squid_R = inst.get("squid_R", 0.0)
 
+        # Ajuste por rotacion (simula presionar A/D) - PRIORIDAD ALTA
+        # Calcular la diferencia de rotación actual vs objetivo para determinar dirección
+        rot_delta = ((inst.get("rotation", 0.0) - prev_rot + 540) % 360) - 180
+        is_rotating = abs(rot_delta) > 0.1
+        
+        if is_rotating:
+            # Está rotando: actualizar squid_R basado en la dirección de rotación
+            if rot_delta > 0:
+                # rotacion aumentó (girando a la derecha) -> similar a 'a' en tu control original
+                if squid_R < 25:
+                    squid_R += 4.0
+            else:
+                # rotacion disminuyó (girando a la izquierda) -> similar a 'd'
+                if squid_R > -25:
+                    squid_R -= 4.0
+
         # Movimiento hacia adelante (nota: en tu control original forward producia delta negativo
         # al comparar con dir; aqui usamos forward_comp: si es negativo significa que la posicion
         # cambió en sentido -fd (recordar signos), pero para seguridad empleamos umbrales)
         if move_dist > 0.001 and forward_comp < 0:
             squidSwBack = 0
-            if squid_R > 0:
-                squid_R -= 2.5
-            if squid_R < 0:
-                squid_R += 2.5
+            # Solo ajustar squid_R si no está rotando (la rotación tiene prioridad)
+            if not is_rotating:
+                if squid_R > 0:
+                    squid_R -= 2.5
+                if squid_R < 0:
+                    squid_R += 2.5
             if squidSw == 0:
                 squidT += 4.0
                 if squidT >= 45:
@@ -891,8 +941,10 @@ def UpdateSquidSmoothMovement():
         # Movimiento hacia atras
         elif move_dist > 0.001 and forward_comp > 0:
             squidSw = 0
-            if squid_R < 0:
-                squid_R += 4.0
+            # Solo ajustar squid_R si no está rotando (la rotación tiene prioridad)
+            if not is_rotating:
+                if squid_R < 0:
+                    squid_R += 4.0
             if squidSwBack == 0:
                 squidT -= 6.0
                 if squidT <= -10:
@@ -903,32 +955,22 @@ def UpdateSquidSmoothMovement():
                     squidSwBack = 0
 
         else:
-            # Si no se movió, intentar devolver squidT y squid_R hacia 0 lentamente
+            # Si no se movió, intentar devolver squidT hacia 0 lentamente
             if squidT > 0.5:
                 squidT -= 1.0
             elif squidT < -0.5:
                 squidT += 1.0
             else:
                 squidT = 0.0
-            # recuperar squid_R lentamente
-            if squid_R > 0.5:
-                squid_R -= 1.0
-            elif squid_R < -0.5:
-                squid_R += 1.0
-            else:
-                squid_R = 0.0
-
-        # Ajuste por rotacion (simula presionar A/D)
-        rot_delta = ((inst.get("rotation", 0.0) - prev_rot + 540) % 360) - 180
-        if abs(rot_delta) > 0.1:
-            if rot_delta > 0:
-                # rotacion aumentó -> similar a 'a' en tu control original
-                if squid_R < 25:
-                    squid_R += 2.0
-            else:
-                # rotacion disminuyó -> similar a 'd'
-                if squid_R > -25:
-                    squid_R -= 2.0
+            
+            # Si no está rotando ni moviéndose, devolver squid_R hacia 0 gradualmente
+            if not is_rotating:
+                if squid_R > 0.5:
+                    squid_R -= 1.0
+                elif squid_R < -0.5:
+                    squid_R += 1.0
+                else:
+                    squid_R = 0.0
 
         # Guardar valores actualizados
         inst["squidT"] = squidT

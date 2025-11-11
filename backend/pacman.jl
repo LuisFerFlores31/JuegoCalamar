@@ -299,7 +299,7 @@ function initialize_model()
         :painted_cells => 0,
         :squids_won => false,
         :ghosts_won => false,
-        :running => false
+        :running => true
     )
     
     model = StandardABM(Union{Pacman, Ghost}, space;

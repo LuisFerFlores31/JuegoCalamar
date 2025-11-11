@@ -68,22 +68,22 @@ NUM_SQUIDS = 4
 # pacman_positions = [(10, 10), (31, 10), (10, 31), (31, 31)]
 # Multiplicadas por 10 para OpenGL
 squid_instances = [
-    {"x": 0.0,   "y": 0.0, "z": 0.0,   "rotation": 0.0, 
-    "target_x": 0.0, "target_z": 0.0,  # Coordenadas objetivo desde Julia
-    "paint_trail": [], "last_trail_x": 0.0, "last_trail_z": 0.0,
+    {"x": 120.0,   "y": 0.0, "z": 80.0,   "rotation": 0.0, 
+    "target_x": 120.0, "target_z": 80.0,  # Coordenadas objetivo desde Julia
+    "paint_trail": [], "last_trail_x": 120.0, "last_trail_z": 80.0, #0,0
     # Animacion/estado interno (por instancia)
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},  # Rastro independiente
-    {"x": -80.0, "y": 0.0, "z": -80.0, "rotation": 0.0,
-    "target_x": -80.0, "target_z": -80.0,
-    "paint_trail": [], "last_trail_x": -80.0, "last_trail_z": -80.0,
-    "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
-    {"x": 80.0,  "y": 0.0, "z": -80.0, "rotation": 0.0,
-    "target_x": 80.0, "target_z": -80.0,
+    {"x": 80.0, "y": 0.0, "z": -80.0, "rotation": 0.0, #Azul
+    "target_x": 80.0, "target_z": -80.0, # Coordenadas
     "paint_trail": [], "last_trail_x": 80.0, "last_trail_z": -80.0,
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
-    {"x": 0.0,   "y": 0.0, "z": 120.0, "rotation": 0.0,
-    "target_x": 0.0, "target_z": 120.0,
-    "paint_trail": [], "last_trail_x": 0.0, "last_trail_z": 120.0,
+    {"x": -80.0,  "y": 0.0, "z": 80.0, "rotation": 0.0, 
+    "target_x": -80.0, "target_z": 80.0,
+    "paint_trail": [], "last_trail_x": -80.0, "last_trail_z": 80.0,
+    "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
+    {"x": -120.0,   "y": 0.0, "z": -120.0, "rotation": 0.0, #0,120
+    "target_x": -120.0, "target_z": -120.0,
+    "paint_trail": [], "last_trail_x": -120.0, "last_trail_z": -120.0,
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
 ]
 
@@ -1342,12 +1342,7 @@ def display():
     # Ahora todas las instancias (0-3) pueden ser controladas por Julia
     for i in range(NUM_SQUIDS):
         DrawSquidInstance(squid_instances[i])
-
-    # Renderizar todas las máquinas usando DrawMachineInstance (incluyendo instancia 0)
-    # Ahora todas las instancias (0-3) pueden ser controladas por Julia
-    for i in range(NUM_MACHINES):
-    # Renderizar todas las máquinas usando DrawMachineInstance (incluyendo instancia 0)
-    # Ahora todas las instancias (0-3) pueden ser controladas por Julia
+ 
     for i in range(NUM_MACHINES):
         DrawMachineInstance(machine_instances[i])
     

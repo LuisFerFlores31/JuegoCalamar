@@ -31,7 +31,7 @@ data_lock = threading.Lock()
 #vc para el obser.
 FOVY=60.0
 ZNEAR=0.01
-ZFAR=900.0
+ZFAR=5000.0
 #Variables para definir la posicion del observador
 #gluLookAt(EYE_X,EYE_Y,EYE_Z,CENTER_X,CENTER_Y,CENTER_Z,UP_X,UP_Y,UP_Z)
 EYE_X = 300.0

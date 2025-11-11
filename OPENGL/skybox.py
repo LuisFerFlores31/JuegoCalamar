@@ -57,8 +57,13 @@ class Skybox:
         self.gl_list = glGenLists(1)
         glNewList(self.gl_list, GL_COMPILE)
 
-        size = 500.0  # Tamaño del skybox
+        size = 2500.0  # Tamaño del skybox 
 
+        glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT)
+        glDepthMask(GL_FALSE)
+        glDisable(GL_DEPTH_TEST)
+        glDisable(GL_LIGHTING)
+        
         glEnable(GL_TEXTURE_CUBE_MAP)
         glBindTexture(GL_TEXTURE_CUBE_MAP, self.cubemap_id)
 
@@ -126,12 +131,12 @@ class Skybox:
 
         glEnd()
         glDisable(GL_TEXTURE_CUBE_MAP)
+        glPopAttrib()
         glEndList()
 
     def render(self, camera_x, camera_y, camera_z):
-        """Renderiza el skybox centrado en la posición de la cámara."""
+        """Renderiza el skybox como fondo estático sin movimiento de cámara."""
         glPushMatrix()
-        glTranslatef(camera_x, camera_y, camera_z)
         glCallList(self.gl_list)
         glPopMatrix()
 

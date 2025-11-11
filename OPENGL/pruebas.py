@@ -51,7 +51,7 @@ Y_MAX=500
 Z_MIN=-500
 Z_MAX=500
 #Dimension del plano
-DimBoard = 300 #200
+DimBoard = 200 #200
  
 #Variables del calamar
 Player_X = 0.0
@@ -823,7 +823,7 @@ def DrawSquidTrail(trail_points, color):
             v4_x = x2 + perp_x * half_width
             v4_z = z2 + perp_z * half_width
             
-            y_offset = 0.5 #offset para evitar conflictos
+            y_offset = 0.8 #offset para evitar conflictos
             glVertex3f(v1_x, y1 + y_offset, v1_z)
             glVertex3f(v2_x, y1 + y_offset, v2_z)
             glVertex3f(v3_x, y2 + y_offset, v3_z)
@@ -1018,7 +1018,7 @@ def UpdateSquidTrails():
             inst["last_trail_z"] = current_z
             
             # Limitar el tamaño del rastro para evitar problemas de rendimiento
-            max_trail_points = 1500
+            max_trail_points = 3500
             if len(trail) > max_trail_points:
                 trail.pop(0)  # Eliminar el punto más antiguo
 
@@ -1153,7 +1153,7 @@ def UpdatePaintTrail():
         last_trail_z = Player_Z
         
         # Limitar el tamaño del rastro para evitar problemas de rendimiento
-        max_trail_points = 500
+        max_trail_points = 2500
         if len(paint_trail) > max_trail_points:
             paint_trail.pop(0)  # Eliminar el punto más antiguo
 def fetch_data_background():

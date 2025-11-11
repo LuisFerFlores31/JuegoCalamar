@@ -88,7 +88,6 @@ squid_instances = [
 ]
 
 # Variables para el rastro de pintura del calamar controlado por teclado (instancia 0)
-# Variables para el rastro de pintura del calamar controlado por teclado (instancia 0)
 paint_trail = []  # Lista de puntos del rastro [(x, y, z), ...]
 trail_width = 15.0  # Ancho del rastro
 last_trail_x = Player_X
@@ -1017,21 +1016,119 @@ def UpdateSquidTrails():
                 trail.pop(0)  # Eliminar el punto más antiguo
 
 def UpdateMachineSmoothMovement():
+    global machine_move_speed, machine_car_rotation_speed, machine_wheel_rotation_speed
 
     for i in range(NUM_MACHINES):
         inst = machine_instances[i]
-        # Copiar directamente la posición objetivo (sin suavizado)
-        inst["x"] = inst.get("target_x", inst.get("x", 0.0))
-        inst["z"] = inst.get("target_z", inst.get("z", 0.0))
+        current_x = inst.get("x", 0.0)
+        current_z = inst.get("z", 0.0)
+        target_x = inst.get("target_x", current_x)
+        target_z = inst.get("target_z", current_z)
 
-        # No realizar animaciones ni cambios automáticos en los ángulos.
-        # Simplemente conservar lo que venga del backend (o el valor actual).
-        inst["car_angle"] = inst.get("car_angle", 0.0)
-        inst["wheel_angle"] = inst.get("wheel_angle", 0.0)
+        # Posición: mover suavemente hacia target
+        dx = target_x - current_x
+        dz = target_z - current_z
+        distance = math.hypot(dx, dz)
+
+        prev_x = current_x
+        prev_z = current_z
+
+        if distance > 0.001:
+            # Normalizar dirección
+            dir_x = dx / distance
+            dir_z = dz / distance
+            # Mover con velocidad constante (no sobrepasar el target)
+            step = min(machine_move_speed, distance)
+            current_x += dir_x * step
+            current_z += dir_z * step
+            inst["x"] = current_x
+            inst["z"] = current_z
+            inst["is_moving_forward"] = True
+            inst["is_moving_backward"] = False
+        else:
+            # Ya en objetivo
+            inst["x"] = target_x
+            inst["z"] = target_z
+            inst["is_moving_forward"] = False
+            inst["is_moving_backward"] = False
+
+        # Rotación del chasis: orientar hacia la dirección del movimiento (si se mueve)
+        car_ang = inst.get("car_angle", 0.0)
+        if distance > 0.001:
+            # Ángulo objetivo hacia la dirección de movimiento
+            # Nota: usamos atan2(-dir_x, -dir_z) para el mismo sistema que los calamares
+            angle_rad = math.atan2(-dir_x, -dir_z)
+            target_rot = math.degrees(angle_rad)
+            if target_rot < 0:
+                target_rot += 360
+            # Diferencia con wrap-around
+            rot_diff = ((target_rot - car_ang + 180) % 360) - 180
+            # Girar gradualmente (grados por frame). machine_car_rotation_speed es un factor pequeño
+            max_rot_step = max(1.0, machine_car_rotation_speed * 180.0)  # escala para hacerlo visible
+            if abs(rot_diff) > 0.1:
+                if rot_diff > 0:
+                    car_ang = car_ang + min(max_rot_step, rot_diff)
+                else:
+                    car_ang = car_ang + max(-max_rot_step, rot_diff)
+            else:
+                car_ang = target_rot
+        else:
+            # Si no hay movimiento, el chasis puede alinear parcialmente con wheel_rotate
+            # Mantener car_ang pero dejar espacio para que venga del backend
+            car_ang = inst.get("car_angle", car_ang)
+
+        # Si el backend propone wheel_rotate (dirección de ruedas), aplicar un pequeño efecto
+        wh_rot = inst.get("wheel_rotate", 0.0)
+        # Simular que el cuerpo se endereza ligeramente hacia el giro de las ruedas cuando hay movimiento
+        if inst.get("is_moving_forward", False) or inst.get("is_moving_backward", False):
+            # Aplicar fracción del wheel_rotate al cuerpo (no permanente)
+            car_ang += -wh_rot * machine_car_rotation_speed * 50.0
+
+        # Normalizar car_ang
+        car_ang = car_ang % 360.0
+        inst["car_angle"] = car_ang
+
+        # Rotación visual de las ruedas (wheel_angle) según el movimiento hacia adelante/atrás
+        moved_x = inst.get("x", 0.0) - prev_x
+        moved_z = inst.get("z", 0.0) - prev_z
+        moved_dist = math.hypot(moved_x, moved_z)
+
+        wh_angle = inst.get("wheel_angle", 0.0)
+        if moved_dist > 1e-4:
+            # Detectar si el movimiento es hacia adelante o atrás respecto al chasis
+            rad_rot = math.radians(inst.get("car_angle", 0.0))
+            fdx = math.sin(rad_rot)
+            fdz = math.cos(rad_rot)
+            forward_comp = moved_x * fdx + moved_z * fdz
+            if forward_comp < 0:
+                # Avanza (forward vector has negative sign in this coordinate convention)
+                wh_angle -= machine_wheel_rotation_speed
+                inst["is_moving_forward"] = True
+                inst["is_moving_backward"] = False
+            else:
+                # Retrocede
+                wh_angle += machine_wheel_rotation_speed
+                inst["is_moving_forward"] = False
+                inst["is_moving_backward"] = True
+        else:
+            # No hay movimiento: frenar/decay del ángulo visual de las ruedas
+            if wh_angle > 0.5:
+                wh_angle -= machine_wheel_rotation_speed * 0.2
+            elif wh_angle < -0.5:
+                wh_angle += machine_wheel_rotation_speed * 0.2
+            else:
+                wh_angle = 0.0
+
+        # Normalizar wheel visual angle
+        if wh_angle <= -360.0:
+            wh_angle += 360.0
+        if wh_angle >= 360.0:
+            wh_angle -= 360.0
+        inst["wheel_angle"] = wh_angle
+
+        # Mantener wheel_rotate y arm_angle propuestos por backend (si existen)
         inst["wheel_rotate"] = inst.get("wheel_rotate", 0.0)
         inst["arm_angle"] = inst.get("arm_angle", inst.get("arm_angle", -15.0))
-        inst["is_moving_forward"] = False
-        inst["is_moving_backward"] = False
 
 def UpdatePaintTrail():
     """Actualiza el rastro de pintura agregando un nuevo punto si el calamar se ha movido suficiente"""
@@ -1088,10 +1185,6 @@ def display():
     objetos[6].render()
     glPopMatrix()
 
-    # Dibujar todos los rastros de pintura antes de los objetos para que queden debajo
-    # Rastro del calamar controlado por teclado (instancia 0) - usa paint_trail original
-    # Dibujar todos los rastros de pintura antes de los objetos para que queden debajo
-    # Rastro del calamar controlado por teclado (instancia 0) - usa paint_trail original
     DrawPaintTrail()
     
     # Rastros de todos los calamares controlados por Julia (instancias 0, 1, 2, 3)

@@ -3,6 +3,9 @@ using Genie, Genie.Renderer.Json, Genie.Requests, HTTP
 using UUIDs
 
 route("/run") do
+    if !model.running
+        return json(Dict("error" => "Simulación finalizada"))
+    end
     run!(model, 1)
 
     # Convertir los agentes a diccionarios con solo la información necesaria
@@ -29,6 +32,10 @@ route("/run") do
     println("Calamares ganaron: $(model.squids_won)")
     println("Fantasmas ganaron: $(model.ghosts_won)")
     println("===========================")
+
+    if model.squids_won || model.ghosts_won
+        model.running = false
+    end
 
     json(Dict(
         "pacmans" => pacmans,

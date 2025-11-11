@@ -68,22 +68,22 @@ NUM_SQUIDS = 4
 # pacman_positions = [(10, 10), (31, 10), (10, 31), (31, 31)]
 # Multiplicadas por 10 para OpenGL
 squid_instances = [
-    {"x": 100.0,   "y": 0.0, "z": 100.0,   "rotation": 0.0, 
-    "target_x": 100.0, "target_z": 100.0,  # Coordenadas objetivo desde Julia
-    "paint_trail": [], "last_trail_x": 100.0, "last_trail_z": 100.0,
+    {"x": 0.0,   "y": 0.0, "z": 0.0,   "rotation": 0.0, 
+    "target_x": 0.0, "target_z": 0.0,  # Coordenadas objetivo desde Julia
+    "paint_trail": [], "last_trail_x": 0.0, "last_trail_z": 0.0,
     # Animacion/estado interno (por instancia)
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},  # Rastro independiente
-    {"x": 310.0, "y": 0.0, "z": 100.0, "rotation": 0.0,
-    "target_x": 310.0, "target_z": 100.0,
-    "paint_trail": [], "last_trail_x": 310.0, "last_trail_z": 100.0,
+    {"x": -80.0, "y": 0.0, "z": -80.0, "rotation": 0.0,
+    "target_x": -80.0, "target_z": -80.0,
+    "paint_trail": [], "last_trail_x": -80.0, "last_trail_z": -80.0,
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
-    {"x": 100.0,  "y": 0.0, "z": 310.0, "rotation": 0.0,
-    "target_x": 100.0, "target_z": 310.0,
-    "paint_trail": [], "last_trail_x": 100.0, "last_trail_z": 310.0,
+    {"x": 80.0,  "y": 0.0, "z": -80.0, "rotation": 0.0,
+    "target_x": 80.0, "target_z": -80.0,
+    "paint_trail": [], "last_trail_x": 80.0, "last_trail_z": -80.0,
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
-    {"x": 310.0,   "y": 0.0, "z": 310.0, "rotation": 0.0,
-    "target_x": 310.0, "target_z": 310.0,
-    "paint_trail": [], "last_trail_x": 310.0, "last_trail_z": 310.0,
+    {"x": 0.0,   "y": 0.0, "z": 120.0, "rotation": 0.0,
+    "target_x": 0.0, "target_z": 120.0,
+    "paint_trail": [], "last_trail_x": 0.0, "last_trail_z": 120.0,
     "squidT": 0.0, "squidSw": 0, "squidSwBack": 0, "squid_R": 0.0},
 ]
 
@@ -1398,20 +1398,10 @@ while not done:
     else:  # When P is not pressed
         if arm_angle > -15.0:  # Minimum angle limit
             arm_angle -= 2.0  # Gradually decrease
-   
-   #Control del brazo de la maquina (P)
-   # if keys[pygame.K_p]:
-   #     arm_angle = 45.0  #valor para el ángulo de elevación del brazo
-   # if not keys[pygame.K_p]:
-   #     arm_angle = -15.0  #Vuelve el brazo a la posición baja si no se presiona P
     
     # Actualizar el rastro de pintura del calamar (solo para instancia 0 controlada por teclado)
     UpdatePaintTrail()
     
-    # Sincroniza la instancia 0 con el calamar/máquina controlados por teclado
-    # El teclado tiene prioridad y sobrescribe cualquier control de Julia para la instancia 0
-    # Si no se usan teclas, la instancia 0 será controlada por Julia (si hay datos disponibles)
-    # Verificar si se están usando teclas para determinar si sobrescribir con control manual
     keys_pressed = any([
         keys[pygame.K_w], keys[pygame.K_s], keys[pygame.K_a], keys[pygame.K_d],
         keys[pygame.K_k], keys[pygame.K_i], keys[pygame.K_j], keys[pygame.K_l], keys[pygame.K_p]

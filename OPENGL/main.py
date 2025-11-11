@@ -923,10 +923,10 @@ while not done:
                 
     if keys[pygame.K_p]:
         if arm_angle < 45.0:  # Maximum angle limit
-            arm_angle += 2.0  # Gradually increase
+            arm_angle += 6.0  # Gradually increase
     else:  # When P is not pressed
         if arm_angle > -15.0:  # Minimum angle limit
-            arm_angle -= 2.0  # Gradually decrease
+            arm_angle -= 3.0  # Gradually decrease
    
    #Control del brazo de la maquina (P)
    # if keys[pygame.K_p]:

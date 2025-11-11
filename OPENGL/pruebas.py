@@ -55,7 +55,7 @@ DimBoard = 200
 Player_X = 0.0
 Player_Y = 0.0
 Player_Z = 0.0
-Squid_Scale = 20.0
+Squid_Scale = 15.0
 Player_Rotation = 0.0  # Rotación del calamar en grados
 SquidT = 0.0
 SquidSw = 0
@@ -107,13 +107,13 @@ machine_wheel_rotation_speed = 10.0  # Velocidad de rotación visual de las rued
 Maquina_X = 0.0
 Maquina_Y = 0.0
 Maquina_Z = 0.0
-Maquina_Scale = 8.0
+Maquina_Scale = 6.0
 car_angle = 0.0
 wheel_angle = 0.0
 wheel_rotate = 0.0
 arm_angle = -15.0  # Ángulo inicial del brazo
-T_offset_y = 20.0
-T_offset_z = -10.0
+T_offset_y = 15.0
+T_offset_z = -6.0
 
 # Instancias adicionales de máquinas (4 en total, la 0 corresponde a la actual)
 NUM_MACHINES = 4
@@ -598,9 +598,9 @@ def DrawMachineInstance(inst):
     rad_car = math.radians(car_ang)
     ct_c = math.cos(rad_car)
     st_c = math.sin(rad_car)
-    m12 = x - (19.0 * st_c)
-    m13 = y + 10.0
-    m14 = z - (19.0 * ct_c)
+    m12 = x - (10.0 * st_c)
+    m13 = y + 7.0
+    m14 = z - (10.0 * ct_c)
     m0 = ct_r * Sc
     m2 = -st_r * Sc
     m4 = st_r * sa_w * Sc
@@ -628,9 +628,9 @@ def DrawMachineInstance(inst):
     rad_wheel = math.radians(wh_ang)
     ca_w = math.cos(rad_wheel)
     sa_w = math.sin(rad_wheel)
-    m12 = x + (21.0 * st)
-    m13 = y + 10.0
-    m14 = z + (21.0 * ct)
+    m12 = x + (13.0 * st)
+    m13 = y + 6.0
+    m14 = z + (13.0 * ct)
     m0 = ct * Sc
     m2 = -st * Sc
     m4 = st * sa_w * Sc
@@ -731,8 +731,6 @@ def DrawSquidInstance(inst):
     glPopMatrix()
 
 def DrawPaintTrail():
-    """Dibuja el rastro de pintura del calamar controlado por teclado (instancia 0)"""
-    """Dibuja el rastro de pintura del calamar controlado por teclado (instancia 0)"""
     if len(paint_trail) < 2:
         return
     
@@ -1202,34 +1200,9 @@ def display():
         if len(squid_instances[i]["paint_trail"]) > 0:
             DrawSquidTrail(squid_instances[i]["paint_trail"], squid_colors[i])
     
-    
-    # Rastros de todos los calamares controlados por Julia (instancias 0, 1, 2, 3)
-    # Colores diferentes para cada calamar
-    squid_colors = [
-        (1.0, 0.2, 0.8),  # Rosa (instancia 0)
-        (0.2, 0.8, 1.0),  # Cyan (instancia 1)
-        (1.0, 0.8, 0.2),  # Amarillo (instancia 2)
-        (0.8, 0.2, 1.0),  # Púrpura (instancia 3)
-    ]
-    
-    # Dibujar rastros de todas las instancias (incluyendo 0 cuando es controlada por Julia)
-    # La instancia 0 también tiene su rastro independiente que se actualiza cuando es controlada por Julia
-    for i in range(NUM_SQUIDS):
-        if len(squid_instances[i]["paint_trail"]) > 0:
-            DrawSquidTrail(squid_instances[i]["paint_trail"], squid_colors[i])
-    
     if cached_data is not None:
         with data_lock:
             data = cached_data
-        
-            # Cada pacman del array actualiza un calamar diferente
-            # Ahora controla las 4 instancias (0, 1, 2, 3) desde Julia
-            # Actualiza las coordenadas OBJETIVO (target) para movimiento suave
-            for i in range(min(4, len(data.get('pacmans', [])))):
-                pacman = data['pacmans'][i]  # pacmans[0] → squid_instances[0]
-                                            # pacmans[1] → squid_instances[1]
-                                            # pacmans[2] → squid_instances[2]
-                                            # pacmans[3] → squid_instances[3]
             # Ahora controla las 4 instancias (0, 1, 2, 3) desde Julia
             # Actualiza las coordenadas OBJETIVO (target) para movimiento suave
             for i in range(min(4, len(data.get('pacmans', [])))):
@@ -1239,23 +1212,6 @@ def display():
                                             # pacmans[3] → squid_instances[3]
                 matrix_size = 40
                 board_size = DimBoard
-                # Actualizar coordenadas objetivo (no las coordenadas actuales directamente)
-                squid_instances[i]["target_x"] = (pacman['pos'][0] / matrix_size) * board_size * 2 - board_size
-                squid_instances[i]["target_z"] = (pacman['pos'][1] / matrix_size) * board_size * 2 - board_size
-                # Actualizar rotación si está disponible en los datos
-                if 'rotation' in pacman:
-                    squid_instances[i]["rotation"] = pacman['rotation']
-                elif 'dir' in pacman:
-                    # Calcular rotación desde dirección si está disponible
-                    dir_val = pacman['dir']
-                    if dir_val == 0:  # Arriba
-                        squid_instances[i]["rotation"] = 0.0
-                    elif dir_val == 1:  # Derecha
-                        squid_instances[i]["rotation"] = 90.0
-                    elif dir_val == 2:  # Abajo
-                        squid_instances[i]["rotation"] = 180.0
-                    elif dir_val == 3:  # Izquierda
-                        squid_instances[i]["rotation"] = 270.0
                 # Actualizar coordenadas objetivo (no las coordenadas actuales directamente)
                 squid_instances[i]["target_x"] = (pacman['pos'][0] / matrix_size) * board_size * 2 - board_size
                 squid_instances[i]["target_z"] = (pacman['pos'][1] / matrix_size) * board_size * 2 - board_size
@@ -1317,18 +1273,9 @@ try:
 except Exception as e:
     print(f"Error inicial: {e}")
 # Inicializar el rastro con la posición inicial del calamar controlado por teclado
-# Inicializar el rastro con la posición inicial del calamar controlado por teclado
 paint_trail.append((Player_X, Player_Y, Player_Z))
 last_trail_x = Player_X
 last_trail_z = Player_Z
-
-# Inicializar los rastros de todas las instancias de calamares
-for i in range(NUM_SQUIDS):
-    inst = squid_instances[i]
-    inst["paint_trail"].append((inst["x"], inst["y"], inst["z"]))
-    inst["last_trail_x"] = inst["x"]
-    inst["last_trail_z"] = inst["z"]
-
 
 # Inicializar los rastros de todas las instancias de calamares
 for i in range(NUM_SQUIDS):
@@ -1399,15 +1346,14 @@ while not done:
     if keys[pygame.K_l]:
         #car_angle -= turn_speed
         if wheel_rotate > -15.0:  # Limita el ángulo de giro máximo
-            wheel_rotate -= turn_speed  #valor para el ángulo de giro de las ruedas delanteras  
-           
+            wheel_rotate -= turn_speed  #valor para el ángulo de giro de las ruedas delanteras    
                 
     if keys[pygame.K_p]:
         if arm_angle < 45.0:  # Maximum angle limit
-            arm_angle += 2.0  # Gradually increase
+            arm_angle += 6.0  # Gradually increase
     else:  # When P is not pressed
         if arm_angle > -15.0:  # Minimum angle limit
-            arm_angle -= 2.0  # Gradually decrease
+            arm_angle -= 3.0  # Gradually decrease
     
     # Actualizar el rastro de pintura del calamar (solo para instancia 0 controlada por teclado)
     UpdatePaintTrail()
@@ -1443,11 +1389,8 @@ while not done:
     
     # Actualizar movimiento suave de todos los calamares hacia sus coordenadas objetivo
     UpdateSquidSmoothMovement()
-    
-    # Actualizar los rastros de pintura de todos los calamares
     UpdateSquidTrails()
     
-    # Actualizar movimiento suave de todas las máquinas hacia sus coordenadas objetivo
     UpdateMachineSmoothMovement()
     
     for event in pygame.event.get():

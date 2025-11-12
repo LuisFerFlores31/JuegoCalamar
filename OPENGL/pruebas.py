@@ -235,7 +235,7 @@ def Init():
     objetos.append(OBJ("WheelLoader/GArmMaquina.obj" , swapyz=True)) #4
     objetos.append(OBJ("WheelLoader/GWMaquina.obj" , swapyz=True)) #5
     #environment 
-    objetos.append(OBJ("Envirioment/ENVPortMakrel2.obj" , swapyz=True)) #6   
+    objetos.append(OBJ("Envirioment/ENVPortMakrel3.obj" , swapyz=True)) #6   
 
     for i in range(len(objetos)): 
         objetos[i].generate()

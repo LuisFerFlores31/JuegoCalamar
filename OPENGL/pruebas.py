@@ -1259,7 +1259,20 @@ def display():
                 # Actualizar wheel_rotate si está disponible (controla la dirección de giro)
                 if 'wheel_rotate' in ghost:
                     machine_instances[i]["wheel_rotate"] = ghost['wheel_rotate']
-                # Actualizar arm_angle si está disponible
+                # Animación automática del brazo cuando captura un pacman
+                captured = ghost.get('captured_pacman', False)
+                current_arm = machine_instances[i]["arm_angle"]
+                
+                if captured:
+                    # Levantar brazo (como si presionara P)
+                    if current_arm < 45.0:
+                        machine_instances[i]["arm_angle"] = min(45.0, current_arm + 2.0)
+                else:
+                    # Bajar brazo (cuando suelta P)
+                    if current_arm > -15.0:
+                        machine_instances[i]["arm_angle"] = max(-15.0, current_arm - 2.0)
+                
+                # Actualizar arm_angle si viene explícitamente desde Julia (override)
                 if 'arm_angle' in ghost:
                     machine_instances[i]["arm_angle"] = ghost['arm_angle']
                 # Nota: car_angle y wheel_angle se actualizan automáticamente en UpdateMachineSmoothMovement()

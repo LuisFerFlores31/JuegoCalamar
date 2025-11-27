@@ -19,6 +19,9 @@ const matrix = load_matrix_from_csv(matrix_path)
     color::String = "yellow"
     quadrant::Int = 1
     captured::Bool = false
+    is_escaping::Bool = false
+    escape_steps::Int = 0
+    tired_steps::Int = 0
 end
 
 @agent struct Ghost(GridAgent{2})
@@ -79,6 +82,25 @@ function pacman_step!(agent, model)
                 break
             end
         end
+    end
+    
+    # Actualizar estado de escape
+    if escaping
+        if !agent.is_escaping
+            agent.is_escaping = true
+            agent.escape_steps = 0
+            agent.tired_steps = 0
+        end
+    else
+        agent.is_escaping = false
+        agent.escape_steps = 0
+        agent.tired_steps = 0
+    end
+    
+    # Si está cansado, no se mueve
+    if agent.is_escaping && agent.tired_steps > 0
+        agent.tired_steps -= 1
+        return
     end
     
     possible_moves = [
@@ -144,6 +166,17 @@ function pacman_step!(agent, model)
             end
         end
         move_agent!(agent, chosen_move, model)
+        
+        # Incrementar contador de pasos si está escapando
+        if agent.is_escaping
+            agent.escape_steps += 1
+            # Si completó 3 pasos, se cansa por 2 pasos
+            if agent.escape_steps >= 5
+                agent.tired_steps = 2
+                agent.escape_steps = 0
+                println("¡Pacman $(agent.id) se cansó! Descansando por 2 pasos...")
+            end
+        end
     end
 end
 

@@ -28,6 +28,11 @@ last_update_time = 0
 update_interval = 0.1
 cached_data = None  
 data_lock = threading.Lock()
+#Variables de victoria
+squids_won = False
+ghosts_won = False
+victory_display_time = 0
+victory_duration = 5.0
 #vc para el obser.
 FOVY=60.0
 ZNEAR=0.01
@@ -1020,7 +1025,7 @@ def UpdateSquidTrails():
             inst["last_trail_z"] = current_z
             
             # Limitar el tamaño del rastro para evitar problemas de rendimiento
-            max_trail_points = 3500
+            max_trail_points = 5000
             if len(trail) > max_trail_points:
                 trail.pop(0)  # Eliminar el punto más antiguo
 
@@ -1139,6 +1144,51 @@ def UpdateMachineSmoothMovement():
         inst["wheel_rotate"] = inst.get("wheel_rotate", 0.0)
         inst["arm_angle"] = inst.get("arm_angle", inst.get("arm_angle", -15.0))
 
+def DrawVictoryScreen(winner_text, color):
+    """Dibuja la pantalla de victoria usando overlay 2D"""
+    # Guardar el estado actual de OpenGL
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    glOrtho(0, screen_width, screen_height, 0, -1, 1)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    
+    # Deshabilitar depth test y lighting para el overlay
+    glDisable(GL_DEPTH_TEST)
+    glDisable(GL_LIGHTING)
+    
+    # Fondo semi-transparente
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    glColor4f(0.0, 0.0, 0.0, 0.7)
+    glBegin(GL_QUADS)
+    glVertex2f(0, 0)
+    glVertex2f(screen_width, 0)
+    glVertex2f(screen_width, screen_height)
+    glVertex2f(0, screen_height)
+    glEnd()
+    
+    # Restaurar estados de OpenGL
+    glDisable(GL_BLEND)
+    glEnable(GL_DEPTH_TEST)
+    glEnable(GL_LIGHTING)
+    
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+    
+    # Dibujar texto usando pygame
+    pygame.font.init()
+    font = pygame.font.Font(None, 120)
+    text_surface = font.render(winner_text, True, (int(color[0]*255), int(color[1]*255), int(color[2]*255)))
+    text_data = pygame.image.tostring(text_surface, "RGBA", True)
+    
+    glWindowPos2d(screen_width // 2 - text_surface.get_width() // 2, screen_height // 2)
+    glDrawPixels(text_surface.get_width(), text_surface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+
 def UpdatePaintTrail():
     """Actualiza el rastro de pintura agregando un nuevo punto si el calamar se ha movido suficiente"""
     global last_trail_x, last_trail_z, paint_trail
@@ -1155,11 +1205,11 @@ def UpdatePaintTrail():
         last_trail_z = Player_Z
         
         # Limitar el tamaño del rastro para evitar problemas de rendimiento
-        max_trail_points = 2500
+        max_trail_points = 5000
         if len(paint_trail) > max_trail_points:
             paint_trail.pop(0)  # Eliminar el punto más antiguo
 def fetch_data_background():
-    global cached_data, last_update_time
+    global cached_data, last_update_time, squids_won, ghosts_won, victory_display_time
     
     while not done:
         try:
@@ -1172,7 +1222,15 @@ def fetch_data_background():
                 with data_lock:
                     cached_data = data
                     last_update_time = current_time
-                    # Guardar datos (sin lógica de overlay)
+                    # Verificar estado de victoria
+                    if data.get('squids_won', False) and not squids_won:
+                        squids_won = True
+                        victory_display_time = time.time()
+                        print("¡LOS CALAMARES HAN GANADO!")
+                    if data.get('ghosts_won', False) and not ghosts_won:
+                        ghosts_won = True
+                        victory_display_time = time.time()
+                        print("¡LAS MÁQUINAS HAN GANADO!")
         except Exception as e:
             print(f"Error en background: {e}")
         
@@ -1304,6 +1362,11 @@ def display():
     for i in range(NUM_MACHINES):
         DrawMachineInstance(machine_instances[i])
 
+    # Mostrar pantalla de victoria si alguien ganó
+    if squids_won:
+        DrawVictoryScreen("CALAMARES GANAN!", (1.0, 0.2, 0.8))
+    elif ghosts_won:
+        DrawVictoryScreen("MAQUINAS GANAN!", (1.0, 0.5, 0.0))
     
 done = False
 Init()

@@ -313,7 +313,7 @@ function initialize_model()
     
     # Pacmans
     pacman_positions = [(10, 10), (31, 10), (10, 31), (31, 31)]
-    #pacman_positions = [(4, 4)]
+    #pacman_positions = [(2, 3)]
     for (i, pos) in enumerate(pacman_positions)
         p = add_agent!(pos, Pacman, model)
         p.quadrant = i

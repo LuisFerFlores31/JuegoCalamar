@@ -137,6 +137,9 @@ objetos = []
 theta = 0.0
 radius = 300
 skybox = None
+# Estado de victoria (overlay)
+game_over = False
+winner = None
 
 
 # Helpers para actualizar instancias desde scripts externos (e.g., Julia)
@@ -200,6 +203,11 @@ def Axis():
 
 
 def Init():
+    # Inicializar GLUT para funciones de texto
+    try:
+        glutInit()
+    except Exception:
+        pass
     screen = pygame.display.set_mode(
         (screen_width, screen_height), DOUBLEBUF | OPENGL)
     pygame.display.set_caption("OpenGL: cubos")
@@ -786,6 +794,70 @@ def DrawPaintTrail():
     # Rehabilitar iluminación
     glEnable(GL_LIGHTING)
 
+def DrawVictoryOverlay(winner_text):
+    """Dibuja un overlay 2D semi-transparente con el texto de victoria centrado."""
+    # Guardar estado de matrices
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    # Proyección ortográfica en coordenadas de ventana
+    glOrtho(0, screen_width, 0, screen_height, -1, 1)
+
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+
+    # Deshabilitar z-test, iluminación y texturas para overlay
+    glDisable(GL_DEPTH_TEST)
+    glDisable(GL_LIGHTING)
+
+    # Dibujar rectángulo semitransparente (negro con alpha)
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+    glColor4f(0.0, 0.0, 0.0, 0.6)
+    glBegin(GL_QUADS)
+    glVertex2f(0, 0)
+    glVertex2f(screen_width, 0)
+    glVertex2f(screen_width, screen_height)
+    glVertex2f(0, screen_height)
+    glEnd()
+
+    # Dibujar texto centrado usando GLUT bitmap (escala simple)
+    # Elegir fuente
+    font = GLUT_BITMAP_HELVETICA_18
+    # Texto principal
+    title = winner_text
+    subtitle = "Presiona ESC para salir"
+
+    # Calcular posiciones (aprox. centrado)
+    # Usamos glRasterPos a coordenadas de ventana: convertir a sistema ortográfico
+    # Centrar el título
+    text_x = screen_width / 2 - (len(title) * 9) / 2
+    text_y = screen_height / 2 + 20
+    glColor3f(1.0, 1.0, 1.0)
+    glRasterPos2f(text_x, text_y)
+    for ch in title:
+        glutBitmapCharacter(font, ord(ch))
+
+    # Subtítulo más pequeño
+    font2 = GLUT_BITMAP_HELVETICA_12
+    text_x2 = screen_width / 2 - (len(subtitle) * 7) / 2
+    text_y2 = screen_height / 2 - 10
+    glRasterPos2f(text_x2, text_y2)
+    for ch in subtitle:
+        glutBitmapCharacter(font2, ord(ch))
+
+    # Restaurar estados
+    glDisable(GL_BLEND)
+    glEnable(GL_LIGHTING)
+    glEnable(GL_DEPTH_TEST)
+
+    glMatrixMode(GL_MODELVIEW)
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+
 def DrawSquidTrail(trail_points, color):
     """Dibuja el rastro de pintura de un calamar específico con un color dado"""
     if len(trail_points) < 2:
@@ -1157,7 +1229,7 @@ def UpdatePaintTrail():
         if len(paint_trail) > max_trail_points:
             paint_trail.pop(0)  # Eliminar el punto más antiguo
 def fetch_data_background():
-    global cached_data, last_update_time
+    global cached_data, last_update_time, game_over, winner
     
     while not done:
         try:
@@ -1170,6 +1242,16 @@ def fetch_data_background():
                 with data_lock:
                     cached_data = data
                     last_update_time = current_time
+                    # Si el backend informa victoria, activar overlay
+                    try:
+                        if data.get('squids_won'):
+                            game_over = True
+                            winner = "¡Victoria: Calamares!"
+                        elif data.get('ghosts_won'):
+                            game_over = True
+                            winner = "¡Victoria: Fantasmas!"
+                    except Exception:
+                        pass
         except Exception as e:
             print(f"Error en background: {e}")
         
@@ -1286,7 +1368,13 @@ def display():
  
     for i in range(NUM_MACHINES):
         DrawMachineInstance(machine_instances[i])
-    
+    # Si hay victoria informada por el servidor, dibujar overlay de victoria
+    try:
+        if game_over:
+            DrawVictoryOverlay(winner if winner is not None else "¡Victoria!")
+    except NameError:
+        pass 
+
     
 done = False
 Init()

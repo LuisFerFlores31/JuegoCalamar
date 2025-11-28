@@ -19,18 +19,27 @@ route("/run") do
         "id" => g.id,
         "pos" => g.pos,
         "color" => g.color,
-        "captured_pacman" => g.captured_pacman
+        "captured_pacman" => g.captured_pacman,
+        "energy" => g.energy,
+        "max_energy" => g.max_energy,
+        "is_recharging" => g.is_recharging
     ) for g in allagents(model) if g isa Ghost]
 
     visited = collect(model.visited_cells)
 
-    # DEBUG: Imprimir información de celdas
+    # DEBUG: Imprimir información de celdas y energía
     println("========== DEBUG ==========")
     println("Celdas pintadas: $(model.painted_cells)")
     println("Total de celdas: $(model.total_cells)")
     println("Porcentaje pintado: $(round(model.painted_cells / model.total_cells * 100, digits=2))%")
     println("Calamares ganaron: $(model.squids_won)")
     println("Fantasmas ganaron: $(model.ghosts_won)")
+    for g in allagents(model)
+        if g isa Ghost
+            status = g.is_recharging ? "RECARGANDO" : "ACTIVO"
+            println("Fantasma $(g.color): Energía $(g.energy)/$(g.max_energy) - $(status)")
+        end
+    end
     println("===========================")
 
     if model.squids_won || model.ghosts_won

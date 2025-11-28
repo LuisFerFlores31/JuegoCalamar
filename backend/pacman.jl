@@ -2,6 +2,7 @@ using Agents
 using Agents.Pathfinding
 using Random
 using DelimitedFiles
+
 #Cargar matriz en el archivo csv Matriz.csv
 function load_matrix_from_csv(filepath::String)
     if !isfile(filepath)
@@ -13,12 +14,16 @@ end
 
 const matrix_path = joinpath(@__DIR__, "Matriz.csv")
 const matrix = load_matrix_from_csv(matrix_path)
+
 # Los agentes pacman y ghost
 @agent struct Pacman(GridAgent{2})
     type::String = "Pacman"
     color::String = "yellow"
     quadrant::Int = 1
     captured::Bool = false
+    is_escaping::Bool = false
+    escape_steps::Int = 0
+    tired_steps::Int = 0
 end
 
 @agent struct Ghost(GridAgent{2})
@@ -30,7 +35,31 @@ end
     patrol_direction::String = "right"
     vision_range::Int = 5 #Campo de Vision
     chasing::Bool = false
+    # Sistema de energía
+    energy::Int = 100           # Energía actual
+    max_energy::Int = 100       # Energía máxima
+    energy_threshold::Int = 20  # Umbral para ir a recargar
+    is_recharging::Bool = false # Estado de recarga
+    recharge_rate::Int = 10     # Cuánta energía recupera por paso en la estación
 end
+
+# Posiciones de las estaciones de recarga (puntos morados en las esquinas de cada cuadrante)
+function get_recharge_station(quadrant::Int, matrix_size)
+    rows, cols = matrix_size
+    mid_row = div(rows + 1, 2)
+    mid_col = div(cols + 1, 2)
+    
+    if quadrant == 1      # Arriba izquierda -> esquina superior izquierda
+        return (2, 2)
+    elseif quadrant == 2  # Arriba derecha -> esquina superior derecha
+        return (cols - 1, 2)
+    elseif quadrant == 3  # Abajo izquierda -> esquina inferior izquierda
+        return (2, rows - 1)
+    else                  # Abajo derecha -> esquina inferior derecha
+        return (cols - 1, rows - 1)
+    end
+end
+
 #Division de cuadrantes
 function get_quadrant_bounds(quadrant, matrix_size)
     rows, cols = matrix_size
@@ -79,6 +108,25 @@ function pacman_step!(agent, model)
                 break
             end
         end
+    end
+    
+    # Actualizar estado de escape
+    if escaping
+        if !agent.is_escaping
+            agent.is_escaping = true
+            agent.escape_steps = 0
+            agent.tired_steps = 0
+        end
+    else
+        agent.is_escaping = false
+        agent.escape_steps = 0
+        agent.tired_steps = 0
+    end
+    
+    # Si está cansado, no se mueve
+    if agent.is_escaping && agent.tired_steps > 0
+        agent.tired_steps -= 1
+        return
     end
     
     possible_moves = [
@@ -144,6 +192,17 @@ function pacman_step!(agent, model)
             end
         end
         move_agent!(agent, chosen_move, model)
+        
+        # Incrementar contador de pasos si está escapando
+        if agent.is_escaping
+            agent.escape_steps += 1
+            # Si completó 3 pasos, se cansa por 2 pasos
+            if agent.escape_steps >= 5
+                agent.tired_steps = 2
+                agent.escape_steps = 0
+                println("¡Pacman $(agent.id) se cansó! Descansando por 2 pasos...")
+            end
+        end
     end
 end
 
@@ -186,6 +245,7 @@ function patrol_zigzag!(agent, model)
         move_agent!(agent, new_pos, model)
     end
 end
+
 #Funcion para el fantasma que persigue al pacman
 function chase_pacman!(agent, target_pacman, model)
     if isnothing(target_pacman) || target_pacman.captured
@@ -231,6 +291,51 @@ function chase_pacman!(agent, target_pacman, model)
     end
 end
 
+# Función para mover el fantasma hacia la estación de recarga
+function move_to_recharge_station!(agent, model)
+    matrix_size = size(matrix)
+    bounds = get_quadrant_bounds(agent.quadrant, matrix_size)
+    station_pos = get_recharge_station(agent.quadrant, matrix_size)
+    
+    # Si ya está en la estación, recargar
+    if agent.pos == station_pos
+        agent.energy = min(agent.energy + agent.recharge_rate, agent.max_energy)
+        println("Fantasma $(agent.color) recargando... Energía: $(agent.energy)/$(agent.max_energy)")
+        
+        # Si llegó a energía máxima, dejar de recargar
+        if agent.energy >= agent.max_energy
+            agent.is_recharging = false
+            println("Fantasma $(agent.color) completó la recarga!")
+        end
+        return
+    end
+    
+    # Calcular dirección hacia la estación
+    dx = station_pos[1] - agent.pos[1]
+    dy = station_pos[2] - agent.pos[2]
+    
+    moves = []
+    # Priorizar el eje con mayor distancia
+    if abs(dx) >= abs(dy)
+        dx > 0 ? push!(moves, (agent.pos[1] + 1, agent.pos[2])) : push!(moves, (agent.pos[1] - 1, agent.pos[2]))
+        dy > 0 ? push!(moves, (agent.pos[1], agent.pos[2] + 1)) : dy < 0 && push!(moves, (agent.pos[1], agent.pos[2] - 1))
+    else
+        dy > 0 ? push!(moves, (agent.pos[1], agent.pos[2] + 1)) : push!(moves, (agent.pos[1], agent.pos[2] - 1))
+        dx > 0 ? push!(moves, (agent.pos[1] + 1, agent.pos[2])) : dx < 0 && push!(moves, (agent.pos[1] - 1, agent.pos[2]))
+    end
+    
+    # Intentar moverse hacia la estación
+    for new_pos in moves
+        col, row = new_pos
+        if bounds.col_min <= col <= bounds.col_max && 
+           bounds.row_min <= row <= bounds.row_max &&
+           matrix[row, col] == 1
+            move_agent!(agent, new_pos, model)
+            return
+        end
+    end
+end
+
 function ghost_step!(agent, model)
     if agent.captured_pacman
         return
@@ -238,6 +343,28 @@ function ghost_step!(agent, model)
     
     matrix_size = size(matrix)
     bounds = get_quadrant_bounds(agent.quadrant, matrix_size)
+    station_pos = get_recharge_station(agent.quadrant, matrix_size)
+    
+    # Verificar si necesita ir a recargar (prioridad máxima)
+    if agent.energy <= agent.energy_threshold && !agent.is_recharging
+        agent.is_recharging = true
+        agent.chasing = false
+        agent.target_id = nothing
+        println("⚡ Fantasma $(agent.color) tiene poca energía ($(agent.energy))! Yendo a recargar...")
+    end
+    
+    # Si está en modo recarga, ir a la estación
+    if agent.is_recharging
+        move_to_recharge_station!(agent, model)
+        # No consumir energía mientras recarga (ya está en la estación o yendo hacia ella)
+        if agent.pos != station_pos
+            agent.energy -= 1  # Consumir energía solo mientras se mueve hacia la estación
+        end
+        return
+    end
+    
+    # Consumir energía en cada paso (solo si no está recargando)
+    agent.energy -= 2
     
     # Buscar Pacmans en FOV dentro del cuadrante
     closest_pacman = nothing
@@ -260,6 +387,7 @@ function ghost_step!(agent, model)
             end
         end
     end
+    
     # Si se detecto un Pacman, perseguirlo
     if !isnothing(closest_pacman)
         if !agent.chasing
@@ -278,6 +406,7 @@ function ghost_step!(agent, model)
         patrol_zigzag!(agent, model)
     end
 end
+
 # Pasos de los agentes
 function agent_step!(agent, model)
     if agent isa Pacman
@@ -286,6 +415,7 @@ function agent_step!(agent, model)
         ghost_step!(agent, model)
     end
 end
+
 # Aqui se inicia el modelo, abajo puedes cambiar cuantos pacman y fantasmas quieres
 function initialize_model()
     walkmap = BitArray(matrix .== 1)
@@ -319,7 +449,7 @@ function initialize_model()
         p.quadrant = i
     end
     
-    # Fantasmas
+    # Fantasmas (inician en las estaciones de recarga)
     ghost_positions = [(2, 2), (40, 2), (2, 40), (40, 40)]
     #ghost_positions = [(2,2)]
     ghost_colors = ["red", "orange", "pink", "cyan"]
@@ -328,6 +458,12 @@ function initialize_model()
         g = add_agent!(pos, Ghost, model)
         g.quadrant = i
         g.color = ghost_colors[i]
+        # Configurar energía inicial
+        g.energy = 100
+        g.max_energy = 100
+        g.energy_threshold = 20
+        g.is_recharging = false
+        g.recharge_rate = 10
     end
     
     return model

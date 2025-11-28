@@ -1,0 +1,24 @@
+# Blender 4.5.3 LTS MTL File: 'None'
+# www.blender.org
+
+newmtl WaterTankCylinder
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 1
+map_Kd WaterTankCylinder_Alb.png
+map_d WaterTankCylinder_Alb.png
+map_Bump -bm 0.300000 WaterTankCylinder_Nrm.png
+
+newmtl WaterTankMetal
+Ns 20.000006
+Ka 1.000000 1.000000 1.000000
+Ks 0.000000 0.000000 0.000000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 1
+map_Kd WaterTankMetal_Alb.png
+map_d WaterTankMetal_Alb.png
+map_Bump -bm 0.300000 WaterTankMetal_Nrm.png

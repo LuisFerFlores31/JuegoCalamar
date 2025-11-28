@@ -53,6 +53,14 @@ const App = () => {
     const midCol = Math.floor(matrix[0].length / 2);
     const midRow = Math.floor(matrix.length / 2);
 
+    // Posiciones de las estaciones de recarga (esquinas de cada cuadrante)
+    const rechargeStations = [
+        { col: 2, row: 2 },                           // Cuadrante 1 - arriba izquierda
+        { col: matrix[0].length - 1, row: 2 },        // Cuadrante 2 - arriba derecha
+        { col: 2, row: matrix.length - 1 },           // Cuadrante 3 - abajo izquierda
+        { col: matrix[0].length - 1, row: matrix.length - 1 } // Cuadrante 4 - abajo derecha
+    ];
+
     return (
       <div style={{
         display: 'flex', 
@@ -89,7 +97,30 @@ const App = () => {
             })
           )}
 
-          {/* líneas divisorias */}
+          {/* Estaciones de recarga (puntos morados) */}
+          {rechargeStations.map((station, index) => (
+            <g key={`station-${index}`}>
+              <circle
+                cx={cellSize * (station.col - 1) + cellSize/2}
+                cy={cellSize * (station.row - 1) + cellSize/2}
+                r={cellSize * 0.6}
+                fill="#8B008B"
+                opacity={0.8}
+              />
+              {/* Símbolo de rayo para indicar estación de carga */}
+              <text
+                x={cellSize * (station.col - 1) + cellSize/2}
+                y={cellSize * (station.row - 1) + cellSize/2 + 4}
+                textAnchor="middle"
+                fontSize={cellSize * 0.5}
+                fill="yellow"
+              >
+                ⚡
+              </text>
+            </g>
+          ))}
+
+          {/* Líneas divisorias */}
           <line 
             x1={cellSize * midCol} y1="0" 
             x2={cellSize * midCol} y2={cellSize * matrix.length} 
@@ -116,18 +147,60 @@ const App = () => {
             </g>
           ))}
 
-          {/* Fantasmas */}
-          {ghosts.map((ghost, index) => (
-            <g key={`ghost-${index}`}>
-              <circle
-                cx={cellSize * (ghost.pos[0] - 1) + cellSize/2}
-                cy={cellSize * (ghost.pos[1] - 1) + cellSize/2}
-                r={cellSize * 0.35}
-                fill={ghostColors[ghost.color] || '#FF0000'}
-                opacity={ghost.captured_pacman ? 0.5 : 1}
-              />
-            </g>
-          ))}
+          {/* Fantasmas con barra de energía */}
+          {ghosts.map((ghost, index) => {
+            const energyPercent = ghost.energy / ghost.max_energy;
+            const energyColor = energyPercent > 0.5 ? '#00FF00' : 
+                               energyPercent > 0.2 ? '#FFFF00' : '#FF0000';
+            
+            return (
+              <g key={`ghost-${index}`}>
+                {/* Cuerpo del fantasma */}
+                <circle
+                  cx={cellSize * (ghost.pos[0] - 1) + cellSize/2}
+                  cy={cellSize * (ghost.pos[1] - 1) + cellSize/2}
+                  r={cellSize * 0.35}
+                  fill={ghostColors[ghost.color] || '#FF0000'}
+                  opacity={ghost.captured_pacman ? 0.5 : 1}
+                  stroke={ghost.is_recharging ? '#FFFF00' : 'none'}
+                  strokeWidth={ghost.is_recharging ? 3 : 0}
+                />
+                
+                {/* Barra de energía (fondo) */}
+                <rect
+                  x={cellSize * (ghost.pos[0] - 1) + cellSize * 0.15}
+                  y={cellSize * (ghost.pos[1] - 1) - cellSize * 0.2}
+                  width={cellSize * 0.7}
+                  height={cellSize * 0.15}
+                  fill="#333"
+                  rx={2}
+                />
+                
+                {/* Barra de energía (nivel actual) */}
+                <rect
+                  x={cellSize * (ghost.pos[0] - 1) + cellSize * 0.15}
+                  y={cellSize * (ghost.pos[1] - 1) - cellSize * 0.2}
+                  width={cellSize * 0.7 * energyPercent}
+                  height={cellSize * 0.15}
+                  fill={energyColor}
+                  rx={2}
+                />
+                
+                {/* Indicador de recarga */}
+                {ghost.is_recharging && (
+                  <text
+                    x={cellSize * (ghost.pos[0] - 1) + cellSize/2}
+                    y={cellSize * (ghost.pos[1] - 1) - cellSize * 0.3}
+                    textAnchor="middle"
+                    fontSize={cellSize * 0.3}
+                    fill="yellow"
+                  >
+                    ⚡
+                  </text>
+                )}
+              </g>
+            );
+          })}
         </svg>
       </div>
     );

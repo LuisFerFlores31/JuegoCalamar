@@ -24,6 +24,8 @@ const matrix = load_matrix_from_csv(matrix_path)
     is_escaping::Bool = false
     escape_steps::Int = 0
     tired_steps::Int = 0
+    last_direction::Tuple{Int,Int} = (1, 0)  # Última dirección de movimiento
+    target_cell::Union{Tuple{Int,Int}, Nothing} = nothing  # Objetivo persistente
 end
 
 @agent struct Ghost(GridAgent{2})
@@ -33,7 +35,7 @@ end
     target_id::Union{Int,Nothing} = nothing
     captured_pacman::Bool = false
     patrol_direction::String = "right"
-    vision_range::Int = 5 #Campo de Vision
+    vision_range::Int = 8 #Campo de Vision (aumentado de 5 a 8)
     chasing::Bool = false
     # Sistema de energía
     energy::Int = 100           # Energía actual
@@ -87,6 +89,84 @@ end
 
 function distance(pos1, pos2)
     return abs(pos1[1] - pos2[1]) + abs(pos1[2] - pos2[2])
+end
+
+# Función para encontrar la celda blanca 
+function find_nearest_unvisited(pos, model)
+    filas, columnas = size(matrix)
+    nearest = nothing
+    min_dist = Inf
+    
+    for col in 1:columnas
+        for row in 1:filas
+            cell = (col, row)
+            # Solo considerar celdas caminables y no visitadas
+            if matrix[row, col] == 1 && !(cell in model.visited_cells)
+                dist = distance(pos, cell)
+                if dist < min_dist
+                    min_dist = dist
+                    nearest = cell
+                end
+            end
+        end
+    end
+    
+    return nearest
+end
+
+# Función para elegir el mejor movimiento hacia un objetivo
+function move_towards(pos, target, valid_moves)
+    if isnothing(target) || isempty(valid_moves)
+        return nothing
+    end
+    
+    best_move = nothing
+    min_dist = Inf
+    
+    for move in valid_moves
+        dist = distance(move, target)
+        if dist < min_dist
+            min_dist = dist
+            best_move = move
+        end
+    end
+    
+    return best_move
+end
+
+# Función para pintar 5 celdas: 1 atrás, 1 a cada lado, y las 2 esquinas traseras
+function paint_brush_pattern!(pos, direction, model)
+    filas, columnas = size(matrix)
+    dx, dy = direction
+    
+    # Calcular direcciones según el movimiento
+    if dx != 0  # Movimiento horizontal 
+        back_dx, back_dy = -dx, 0      
+        perp_dx, perp_dy = 0, 1        
+    else        # Movimiento vertical (arriba/abajo)
+        back_dx, back_dy = 0, -dy      
+        perp_dx, perp_dy = 1, 0       
+    end
+    
+    # Las 5 celdas a pintar (no incluye la celda actual, esa se maneja aparte)
+    cells_to_paint = [
+        (pos[1] + back_dx, pos[2] + back_dy),                           
+        (pos[1] + perp_dx, pos[2] + perp_dy),                           
+        (pos[1] - perp_dx, pos[2] - perp_dy),                           
+        (pos[1] + back_dx + perp_dx, pos[2] + back_dy + perp_dy),       
+        (pos[1] + back_dx - perp_dx, pos[2] + back_dy - perp_dy)        
+    ]
+    
+    # Pintar celdas válidas
+    for cell in cells_to_paint
+        col, row = cell
+        if row >= 1 && row <= filas && col >= 1 && col <= columnas
+            if matrix[row, col] == 1 && !(cell in model.visited_cells)
+                push!(model.visited_cells, cell)
+                model.painted_cells += 1
+            end
+        end
+    end
 end
 
 function pacman_step!(agent, model)
@@ -168,35 +248,70 @@ function pacman_step!(agent, model)
             end
         end
         chosen_move = best_move
+        agent.target_cell = nothing  # Resetear objetivo al escapar
     else
-        #Buscar celdas no pintadas
+        #Buscar celdas no pintadas entre los vecinos
         unvisited = [m for m in valid_moves if !(m in model.visited_cells)]
         
         if !isempty(unvisited)
+            # Si hay vecinos no visitados, elegir uno al azar y resetear objetivo
             chosen_move = rand(unvisited)
+            agent.target_cell = nothing
         else
-            chosen_move = rand(valid_moves)
+            # Si no hay vecinos no visitados, usar objetivo persistente
+            
+            # Verificar si el objetivo actual sigue siendo válido
+            if !isnothing(agent.target_cell)
+                if agent.target_cell in model.visited_cells || agent.pos == agent.target_cell
+                    agent.target_cell = nothing  # Ya fue visitado o llegamos
+                end
+            end
+            
+            # Si no hay objetivo, buscar uno nuevo
+            if isnothing(agent.target_cell)
+                agent.target_cell = find_nearest_unvisited(agent.pos, model)
+            end
+            
+            # Moverse hacia el objetivo
+            if !isnothing(agent.target_cell)
+                chosen_move = move_towards(agent.pos, agent.target_cell, valid_moves)
+            else
+                # Si ya no hay celdas blancas, moverse al azar
+                chosen_move = rand(valid_moves)
+            end
         end
     end
     
     if !isnothing(chosen_move)
-        # Solo agregar y contar si la celda NO ha sido visitada antes
-        if !(chosen_move in model.visited_cells)
-            push!(model.visited_cells, chosen_move)
-            model.painted_cells += 1
-            
-            # Verificar victoria cuando se pinta una nueva celda
-            if model.painted_cells >= model.total_cells
-                model.squids_won = true
-                println("¡Los calamares han ganado! Pintaron $(model.painted_cells) de $(model.total_cells) celdas")
+        # Calcular la dirección del movimiento
+        move_direction = (chosen_move[1] - agent.pos[1], chosen_move[2] - agent.pos[2])
+        agent.last_direction = move_direction
+        
+        move_agent!(agent, chosen_move, model)
+        
+        # Marcar la celda actual como visitada 
+        if !(agent.pos in model.visited_cells)
+            push!(model.visited_cells, agent.pos)
+            # Solo contar si es celda caminable 
+            filas, columnas = size(matrix)
+            if matrix[agent.pos[2], agent.pos[1]] == 1
+                model.painted_cells += 1
             end
         end
-        move_agent!(agent, chosen_move, model)
+        
+        # Pintar las 5 celdas adicionales en patrón de brocha
+        paint_brush_pattern!(agent.pos, move_direction, model)
+        
+        # Verificar victoria cuando se pinta una nueva celda
+        if model.painted_cells >= model.total_cells
+            model.squids_won = true
+            println("¡Los calamares han ganado! Pintaron $(model.painted_cells) de $(model.total_cells) celdas")
+        end
         
         # Incrementar contador de pasos si está escapando
         if agent.is_escaping
             agent.escape_steps += 1
-            # Si completó 3 pasos, se cansa por 2 pasos
+            # Si completó 5 pasos, se cansa por 2 pasos
             if agent.escape_steps >= 5
                 agent.tired_steps = 2
                 agent.escape_steps = 0
@@ -447,6 +562,8 @@ function initialize_model()
     for (i, pos) in enumerate(pacman_positions)
         p = add_agent!(pos, Pacman, model)
         p.quadrant = i
+        p.last_direction = (1, 0)  # Dirección inicial: derecha
+        p.target_cell = nothing    # Sin objetivo inicial
     end
     
     # Fantasmas (inician en las estaciones de recarga)

@@ -1170,24 +1170,22 @@ def DrawVictoryScreen(winner_text, color):
     glVertex2f(0, screen_height)
     glEnd()
     
-    # Restaurar estados de OpenGL
-    glDisable(GL_BLEND)
-    glEnable(GL_DEPTH_TEST)
-    glEnable(GL_LIGHTING)
-    
-    glPopMatrix()
-    glMatrixMode(GL_PROJECTION)
-    glPopMatrix()
-    glMatrixMode(GL_MODELVIEW)
-    
     # Dibujar texto usando pygame
     pygame.font.init()
     font = pygame.font.Font(None, 120)
     text_surface = font.render(winner_text, True, (int(color[0]*255), int(color[1]*255), int(color[2]*255)))
     text_data = pygame.image.tostring(text_surface, "RGBA", True)
-    
     glWindowPos2d(screen_width // 2 - text_surface.get_width() // 2, screen_height // 2)
     glDrawPixels(text_surface.get_width(), text_surface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+
+    # Restaurar estados de OpenGL
+    glDisable(GL_BLEND)
+    glEnable(GL_DEPTH_TEST)
+    glEnable(GL_LIGHTING)
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
 
 def UpdatePaintTrail():
     """Actualiza el rastro de pintura agregando un nuevo punto si el calamar se ha movido suficiente"""

@@ -62,7 +62,7 @@ DimBoard = 200 #200
 Player_X = 0.0
 Player_Y = 0.0
 Player_Z = 0.0
-Squid_Scale = 15.0
+Squid_Scale = 17.0 #OLD 15
 Player_Rotation = 0.0  # Rotación del calamar en grados
 SquidT = 0.0
 SquidSw = 0
@@ -106,7 +106,7 @@ squid_move_speed = 2.0  # Velocidad de interpolación (unidades por frame)
 squid_rotation_speed = 5.0  # Velocidad de rotación (grados por frame)
 
 # Velocidad de movimiento y rotación para máquinas
-machine_move_speed = 1.0  # Velocidad de interpolación (unidades por frame)
+machine_move_speed = 1.5  # Velocidad de interpolación (unidades por frame)
 machine_car_rotation_speed = 0.02  # Velocidad de rotación del cuerpo hacia las ruedas (factor)
 machine_wheel_rotation_speed = 10.0  # Velocidad de rotación visual de las ruedas (grados por frame)
 
@@ -820,7 +820,7 @@ def DrawSquidTrail(trail_points, color):
             perp_z = dx / length
             
             # Calcular los 4 vértices del quad
-            half_width = trail_width / 2.0
+            half_width = trail_width #/ 2.0
             v1_x = x1 + perp_x * half_width
             v1_z = z1 + perp_z * half_width
             v2_x = x1 - perp_x * half_width

@@ -496,8 +496,8 @@ def MaquinaFW():
     
 def MaquinaBW():
     glPushMatrix()
-    Sc = Maquina_Scale # Alias corto para la escala
-    # --- 1. Trig para la TRASLACIÓN y ROTACIÓN Ry ---
+    Sc = Maquina_Scale
+    #Trig para la TRASLACIÓN y ROTACIÓN Ry
     # (Depende de car_angle)
     rad_car = math.radians(car_angle)
     ct = math.cos(rad_car) # cos(theta) chasis
@@ -908,7 +908,7 @@ def UpdateSquidSmoothMovement():
             inst["x"] += dir_x * squid_move_speed
             inst["z"] += dir_z * squid_move_speed
 
-        # --- Animacion por instancia (simula hold de teclas) ---
+        # Animacion por instancia (simula hold)
         moved_x = inst["x"] - prev_x
         moved_z = inst["z"] - prev_z
         move_dist = math.hypot(moved_x, moved_z)
@@ -935,17 +935,16 @@ def UpdateSquidSmoothMovement():
         if is_rotating:
             # Está rotando: actualizar squid_R basado en la dirección de rotación
             if rot_delta > 0:
-                # rotacion aumentó (girando a la derecha) -> similar a 'a' en tu control original
+                # rotacion aumentó (girando a la derecha) 'a'
                 if squid_R < 25:
                     squid_R += 4.0
             else:
-                # rotacion disminuyó (girando a la izquierda) -> similar a 'd'
+                # rotacion disminuyó (girando a la izquierda) 'd'
                 if squid_R > -25:
                     squid_R -= 4.0
 
-        # Movimiento hacia adelante (nota: en tu control original forward producia delta negativo
-        # al comparar con dir; aqui usamos forward_comp: si es negativo significa que la posicion
-        # cambió en sentido -fd (recordar signos), pero para seguridad empleamos umbrales)
+        # Movimiento hacia adelante
+        # al comparar con dir; aqui usamos forward_comp: si es negativo significa que la posicion avanza
         if move_dist > 0.001 and forward_comp < 0:
             squidSwBack = 0
             # Solo ajustar squid_R si no está rotando (la rotación tiene prioridad)

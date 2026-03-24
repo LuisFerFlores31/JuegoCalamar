@@ -389,7 +389,7 @@ def MaquinaArm():
     m13 = Maquina_Y + T_offset_y
     m14 = Maquina_Z + (T_offset_z * ct)
 
-    # --- 4. Definir la matriz (formato Column-Major) ---
+    #Definir la matriz (formato Column-Major)
     maquina_arm_matrix = [
         m0, 0.0, m2, 0.0,   # Columna 0
         m4, m5, m6, 0.0,   # Columna 1
@@ -451,8 +451,8 @@ def MaquinaFW():
     
 def MaquinaBW():
     glPushMatrix()
-    Sc = Maquina_Scale # Alias corto para la escala
-    # --- 1. Trig para la TRASLACIÓN y ROTACIÓN Ry ---
+    Sc = Maquina_Scale
+    # Trig para la TRASLACIÓN y ROTACIÓN Ry ---
     # (Depende de car_angle)
     rad_car = math.radians(car_angle)
     ct = math.cos(rad_car) # cos(theta) chasis
